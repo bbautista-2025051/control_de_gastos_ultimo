@@ -1,0 +1,291 @@
+<div class="rep-shell">
+  <div class="bg-light bg-light-green" aria-hidden="true"></div>
+  <div class="bg-light bg-light-purple" aria-hidden="true"></div>
+
+  <header class="rep-nav">
+    <div class="rep-nav-inner">
+      <div class="brand">
+        <img
+          src="logo-gestion.png"
+          alt="Logo de DATANEX"
+          class="brand-logo"
+        />
+      </div>
+
+      <nav class="nav-tabs" aria-label="Navegación principal">
+        <a class="nav-tab" routerLink="/dashboard" routerLinkActive="nav-tab-active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
+        <a class="nav-tab" routerLink="/transacciones" routerLinkActive="nav-tab-active">Transacciones</a>
+        <a class="nav-tab" routerLink="/categorias" routerLinkActive="nav-tab-active">Categorías</a>
+        <a class="nav-tab nav-tab-active" routerLink="/reportes" routerLinkActive="nav-tab-active" aria-current="page">Reportes</a>
+      </nav>
+
+      <div class="avatar-wrap">
+        <button class="avatar" type="button" (click)="toggleMenu()" title="Menú de usuario">
+          {{ initials(user()?.name) }}
+        </button>
+        @if (menuOpen()) {
+          <div class="menu-backdrop" (click)="menuOpen.set(false)"></div>
+          <div class="user-menu">
+            <button class="user-menu-item" type="button" (click)="settings()">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a6.759 6.759 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+              Ajustes de la cuenta
+            </button>
+            <button class="user-menu-item user-menu-item-danger" type="button" (click)="logout()">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-9a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 4.5 21h9a2.25 2.25 0 0 0 2.25-2.25V15m0 0 3-3m0 0-3-3m3 3H9" />
+              </svg>
+              Cerrar sesión
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="rep-main">
+    @if (loadError) {
+      <p class="rep-error">No se pudo cargar su información.</p>
+    } @else {
+      <section class="page-head page-head-row">
+        <div>
+          <h1 class="page-title">Reportes</h1>
+          <p class="page-sub">
+            Análisis visual de sus ingresos y egresos — solo lectura dentro de la aplicación
+          </p>
+        </div>
+        <div class="period-tabs">
+          <button
+            type="button"
+            class="period-tab"
+            [class.period-tab-active]="period() === 'MES'"
+            (click)="setPeriod('MES')"
+          >
+            Este mes
+          </button>
+          <button
+            type="button"
+            class="period-tab"
+            [class.period-tab-active]="period() === '6MESES'"
+            (click)="setPeriod('6MESES')"
+          >
+            Últimos 6 meses
+          </button>
+          <button
+            type="button"
+            class="period-tab"
+            [class.period-tab-active]="period() === 'ANIO'"
+            (click)="setPeriod('ANIO')"
+          >
+            Este año
+          </button>
+        </div>
+      </section>
+
+      <div class="notice">
+        <svg
+          class="notice-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+        <p>
+          Los reportes se visualizan únicamente dentro de la aplicación. No se
+          ofrece exportación a PDF, Excel ni impresión.
+        </p>
+      </div>
+
+      <section class="kpi-grid">
+        @for (kpi of kpis(); track kpi.label) {
+          <article class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-icon" [class]="'kpi-icon-' + kpi.tone">
+                @switch (kpi.icon) {
+                  @case ("trend-up") {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+                    </svg>
+                  }
+                  @case ("trend-down") {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181" />
+                    </svg>
+                  }
+                  @case ("balance") {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+                      <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+                      <path d="M7 21h10" />
+                      <path d="M12 3v18" />
+                      <path d="M3 7h2c2 0 3-1 3-2 0-1-1-2-3-2S2 4 2 5" />
+                      <path d="M21 7h-2c-2 0-3-1-3-2 0-1 1-2 3-2s3 1 3 2" />
+                    </svg>
+                  }
+                  @case ("bars") {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M3 20V10" />
+                      <path d="M10 20V4" />
+                      <path d="M17 20v-7" />
+                      <path d="M13 20h8" />
+                    </svg>
+                  }
+                }
+              </span>
+              <span class="kpi-label">{{ kpi.label }}</span>
+            </div>
+            <p class="kpi-value" [class.kpi-value-positive]="kpi.tone === 'emerald'" [class.kpi-value-negative]="kpi.tone === 'red'">
+              {{ kpi.value }}
+            </p>
+            <p [class]="kpi.subClass">{{ kpi.sub }}</p>
+          </article>
+        }
+      </section>
+
+      <section class="rep-panels">
+        <article class="panel-card">
+          <header class="panel-head">
+            <h2 class="panel-title">Ingresos vs. egresos</h2>
+            <p class="panel-sub">Comparativa mensual — últimos 6 meses</p>
+          </header>
+          <div class="chart">
+            <div class="chart-plot">
+              @for (month of chartBars(); track month.label) {
+                <div class="chart-group">
+                  <div class="chart-bars">
+                    <span
+                      class="chart-bar chart-income"
+                      [style.height.%]="barHeight(month.income)"
+                      title="Ingresos {{ month.label }}"
+                    ></span>
+                    <span
+                      class="chart-bar chart-expense"
+                      [style.height.%]="barHeight(month.expense)"
+                      title="Egresos {{ month.label }}"
+                    ></span>
+                  </div>
+                  <span class="chart-label">{{ month.label }}</span>
+                </div>
+              }
+            </div>
+            <div class="chart-legend">
+              <span class="legend-item">
+                <span class="legend-dot legend-dot-income"></span>
+                Ingresos
+              </span>
+              <span class="legend-item">
+                <span class="legend-dot legend-dot-expense"></span>
+                Egresos
+              </span>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel-card">
+          <header class="panel-head">
+            <h2 class="panel-title">Distribución de gastos</h2>
+            <p class="panel-sub">Por categoría — periodo seleccionado</p>
+          </header>
+          <div class="donut-wrap">
+            <div class="donut">
+              <svg viewBox="0 0 42 42" aria-hidden="true">
+                <circle class="donut-bg" cx="21" cy="21" r="15.9" />
+                @for (seg of donutSegments(); track seg.name) {
+                  <circle
+                    class="donut-seg"
+                    cx="21"
+                    cy="21"
+                    r="15.9"
+                    [attr.stroke]="seg.color"
+                    [attr.stroke-dasharray]="seg.dash"
+                    [attr.stroke-dashoffset]="seg.offset"
+                  ></circle>
+                }
+              </svg>
+              <div class="donut-center">
+                <p class="donut-value">{{ money(donutTotal()) }}</p>
+                <p class="donut-total">total</p>
+              </div>
+            </div>
+            <div class="donut-legend">
+              @for (seg of donutSegments(); track seg.name) {
+                <div class="legend-row">
+                  <span class="legend-dot" [style.background]="seg.color"></span>
+                  <span class="legend-name">{{ seg.name }}</span>
+                  <span class="legend-pct">{{ seg.percent }}%</span>
+                </div>
+              }
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel-card table-panel">
+        <header class="panel-head">
+          <h2 class="panel-title">Detalle por categoría</h2>
+          <p class="panel-sub">
+            Ingresos y egresos acumulados en el periodo seleccionado
+          </p>
+        </header>
+        @if (!hasTransactions()) {
+          <p class="empty-state">Aún no hay transacciones registradas en este periodo.</p>
+        } @else {
+          <div class="rep-table">
+            <div class="rep-table-head">
+              <span>Categoría</span>
+              <span>Movimientos</span>
+              <span>Monto</span>
+              <span>% del total</span>
+            </div>
+            <div class="rep-table-body">
+              @for (row of detailRows(); track row.name) {
+                <div class="rep-table-row">
+                  <span class="rep-cat">
+                    <span class="legend-dot" [style.background]="row.color"></span>
+                    {{ row.name }}
+                  </span>
+                  <span class="rep-mov">{{ row.movements }}</span>
+                  <span class="rep-amount">{{ money(row.amount) }}</span>
+                  <span class="rep-pct">{{ row.percent }}%</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </section>
+    }
+  </main>
+
+  <footer class="rep-footer">
+    DATANEX · Control de Gastos — Uso personal y familiar
+  </footer>
+</div>

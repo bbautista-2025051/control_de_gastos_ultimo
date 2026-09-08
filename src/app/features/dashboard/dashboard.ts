@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { FormsModule } from "@angular/forms";
-import { RouterLink } from "@angular/router";
+import { RouterLink, RouterLinkActive, Router } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
 import { ToastService } from "../../core/toast.service";
 import {
@@ -72,7 +72,7 @@ interface CategoryView {
 
 @Component({
   selector: "app-dashboard",
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, RouterLinkActive],
   templateUrl: "./dashboard.html",
   styleUrl: "./dashboard.css",
 })
@@ -80,6 +80,7 @@ export class Dashboard implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly expenses = inject(ExpensesService);
+  private readonly router = inject(Router);
   readonly auth = inject(AuthService);
 
   readonly user = this.auth.user;
@@ -257,7 +258,7 @@ export class Dashboard implements OnInit {
 
   settings(): void {
     this.menuOpen.set(false);
-    this.toast.info("Los ajustes de la cuenta estarán disponibles próximamente.", "Próximamente");
+    void this.router.navigate(["/ajustes"]);
   }
 
   setTipo(value: "INCOME" | "EXPENSE"): void {

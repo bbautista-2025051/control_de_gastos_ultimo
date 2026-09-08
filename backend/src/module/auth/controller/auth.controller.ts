@@ -22,6 +22,30 @@ export class AuthController {
     }
   };
 
+  updateProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = await this.authService.updateProfile(
+        req.auth!.userId,
+        req.body
+      );
+      res.json({ user });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  changePassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.authService.changePassword(
+        req.auth!.userId,
+        req.body
+      );
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   logout = async (_req: Request, res: Response) => {
     res.json({ message: "Sesión cerrada." });
   };

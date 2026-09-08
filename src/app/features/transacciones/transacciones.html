@@ -15,8 +15,8 @@
       <nav class="nav-tabs" aria-label="Navegación principal">
         <a class="nav-tab" routerLink="/dashboard" routerLinkActive="nav-tab-active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
         <a class="nav-tab nav-tab-active" routerLink="/transacciones" routerLinkActive="nav-tab-active">Transacciones</a>
-        <a class="nav-tab">Categorías</a>
-        <a class="nav-tab">Reportes</a>
+        <a class="nav-tab" routerLink="/categorias" routerLinkActive="nav-tab-active">Categorías</a>
+        <a class="nav-tab" routerLink="/reportes" routerLinkActive="nav-tab-active">Reportes</a>
       </nav>
 
       <div class="avatar-wrap">
@@ -248,7 +248,8 @@
                 class="search-input"
                 type="text"
                 placeholder="Buscar por descripción o categoría…"
-                [(ngModel)]="search"
+                [ngModel]="search()"
+                (ngModelChange)="search.set($event)"
                 name="search"
               />
             </div>
@@ -438,7 +439,7 @@
                     [(ngModel)]="category"
                     name="category"
                   >
-                    @for (option of expenseCategories; track option) {
+                    @for (option of selectedCategories(); track option) {
                       <option [value]="option">{{ option }}</option>
                     }
                   </select>
@@ -524,7 +525,7 @@
             type="button"
             class="toggle-btn"
             [class.toggle-on]="editTipo === 'INCOME'"
-            (click)="editTipo = 'INCOME'"
+            (click)="setEditTipo('INCOME')"
           >
             Ingreso
           </button>
@@ -532,7 +533,7 @@
             type="button"
             class="toggle-btn"
             [class.toggle-egreso]="editTipo === 'EXPENSE'"
-            (click)="editTipo = 'EXPENSE'"
+            (click)="setEditTipo('EXPENSE')"
           >
             Egreso
           </button>
@@ -564,7 +565,7 @@
               [(ngModel)]="editCategory"
               name="editCategory"
             >
-              @for (option of expenseCategories; track option) {
+              @for (option of editTipo === 'INCOME' ? incomeCategories : expenseCategories; track option) {
                 <option [value]="option">{{ option }}</option>
               }
             </select>

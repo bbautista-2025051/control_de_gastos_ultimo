@@ -24,17 +24,17 @@ const MONTH_LABELS = [
   "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
 ] as const;
 
-// Presupuesto mensual por categoría (uso demo, sin login).
+// Presupuesto mensual por categoría (misma fuente que la vista de Categorías).
 const CATEGORY_BUDGETS: Record<string, number> = {
-  "Alimentación": 850,
-  "Transporte": 500,
-  "Vivienda": 900,
-  "Servicios": 300,
-  "Salud": 200,
+  "Alimentación": 700,
+  "Transporte": 450,
+  "Vivienda": 1200,
+  "Servicios": 400,
+  "Salud": 300,
   "Ocio": 150,
-  "Educación": 300,
+  "Educación": 250,
   "Ropa": 150,
-  "Otros": 200,
+  "Otros": 100,
 };
 
 const TOTAL_BUDGET = Object.values(CATEGORY_BUDGETS).reduce((a, b) => a + b, 0);
@@ -137,6 +137,7 @@ export class ExpensesService {
         percent: budgetPercent,
       },
       categories,
+      categoryBudgets: CATEGORY_BUDGETS,
       monthly,
       alerts,
     };

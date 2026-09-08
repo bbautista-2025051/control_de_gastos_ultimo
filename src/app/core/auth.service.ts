@@ -43,6 +43,26 @@ export class AuthService {
     );
   }
 
+  updateProfile(name: string, email: string): Observable<MeResponse> {
+    return this.http.patch<MeResponse>("/api/auth/me", { name, email }).pipe(
+      tap(({ user }) => {
+        this.userSignal.set(user);
+      })
+    );
+  }
+
+  changePassword(
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string
+  ): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>("/api/auth/change-password", {
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+  }
+
   logout(): void {
     this.inactivity.stop();
     localStorage.removeItem(TOKEN_KEY);

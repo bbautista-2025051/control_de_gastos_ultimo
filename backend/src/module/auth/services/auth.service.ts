@@ -4,7 +4,11 @@ import { prisma } from "../../../lib/prisma";
 import { env } from "../../../config/env";
 import { HttpError } from "../../../lib/errors";
 import type { AuthPayload } from "../../../middlewares/auth.middleware";
-import type { LoginInput } from "../auth.schemas";
+import type {
+  ChangePasswordInput,
+  LoginInput,
+  UpdateProfileInput,
+} from "../auth.schemas";
 
 const TOKEN_EXPIRATION = "30m";
 
@@ -64,5 +68,67 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async updateProfile(userId: string, input: UpdateProfileInput) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new HttpError(404, "Usuario no encontrado.");
+    }
+
+    if (input.email) {
+      const existing = await prisma.user.findUnique({
+        where: { email: input.email },
+        select: { id: true },
+      });
+
+      if (existing && existing.id !== userId) {
+        throw new HttpError(409, "Ese correo electrónico ya está en uso.");
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      select: publicUserSelect,
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.email !== undefined ? { email: input.email } : {}),
+      },
+    });
+
+    return updated;
+  }
+
+  async changePassword(userId: string, input: ChangePasswordInput) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true },
+    });
+
+    if (!user) {
+      throw new HttpError(404, "Usuario no encontrado.");
+    }
+
+    const isValid = await bcrypt.compare(
+      input.currentPassword,
+      user.passwordHash
+    );
+
+    if (!isValid) {
+      throw new HttpError(400, "La contraseña actual no es correcta.");
+    }
+
+    const passwordHash = await bcrypt.hash(input.newPassword, 12);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    return { message: "Contraseña actualizada correctamente." };
   }
 }

@@ -32,6 +32,7 @@ export interface DashboardSummary {
   expenseMonth: number;
   budget: BudgetSummary;
   categories: CategorySum[];
+  categoryBudgets: Record<string, number>;
   monthly: MonthSum[];
   alerts: BudgetAlert[];
 }

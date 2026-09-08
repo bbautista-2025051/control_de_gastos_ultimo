@@ -6,7 +6,7 @@ import {
   signal,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { RouterLink, RouterLinkActive } from "@angular/router";
+import { RouterLink, RouterLinkActive, Router } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
 import { ToastService } from "../../core/toast.service";
 import {
@@ -88,6 +88,7 @@ type Filter = "ALL" | "INCOME" | "EXPENSE";
 export class Transacciones implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly expenses = inject(ExpensesService);
+  private readonly router = inject(Router);
   readonly auth = inject(AuthService);
 
   readonly user = this.auth.user;
@@ -97,7 +98,7 @@ export class Transacciones implements OnInit {
 
   readonly menuOpen = signal(false);
   readonly filter = signal<Filter>("ALL");
-  search = "";
+  readonly search = signal("");
   loading = false;
 
   readonly tipo = signal<"INCOME" | "EXPENSE">("EXPENSE");
@@ -118,6 +119,7 @@ export class Transacciones implements OnInit {
   readonly deleting = signal<ExpenseItem | null>(null);
   deletingTransaction = false;
 
+  readonly incomeCategories = ["Salario", "Trabajo independiente", "Otros ingresos"];
   readonly expenseCategories = [
     "Alimentación",
     "Transporte",
@@ -127,7 +129,6 @@ export class Transacciones implements OnInit {
     "Ocio",
     "Educación",
     "Ropa",
-    "Salario",
     "Otros",
   ];
 
@@ -214,12 +215,14 @@ export class Transacciones implements OnInit {
   });
 
   readonly filteredTransactions = computed<ExpenseItem[]>(() => {
-    const query = this.search.trim().toLowerCase();
+    const query = this.search().trim().toLowerCase();
+    if (!query) {
+      return this.transactions();
+    }
     return this.transactions().filter((item) => {
-      if (query && !item.description.toLowerCase().includes(query)) {
-        return false;
-      }
-      return true;
+      const haystack =
+        `${item.description} ${item.category}`.toLowerCase();
+      return haystack.includes(query);
     });
   });
 
@@ -227,6 +230,10 @@ export class Transacciones implements OnInit {
     const data = this.summary();
     return (data?.incomeMonth ?? 0) + (data?.expenseMonth ?? 0);
   });
+
+  readonly selectedCategories = computed<string[]>(() =>
+    this.tipo() === "INCOME" ? this.incomeCategories : this.expenseCategories
+  );
 
   ngOnInit(): void {
     this.auth.me().subscribe({
@@ -312,11 +319,23 @@ export class Transacciones implements OnInit {
 
   settings(): void {
     this.menuOpen.set(false);
-    this.toast.info("Los ajustes de la cuenta estarán disponibles próximamente.", "Próximamente");
+    void this.router.navigate(["/ajustes"]);
   }
 
   setTipo(value: "INCOME" | "EXPENSE"): void {
     this.tipo.set(value);
+    const list = value === "INCOME" ? this.incomeCategories : this.expenseCategories;
+    if (!list.includes(this.category)) {
+      this.category = list[0];
+    }
+  }
+
+  setEditTipo(value: "INCOME" | "EXPENSE"): void {
+    this.editTipo = value;
+    const list = value === "INCOME" ? this.incomeCategories : this.expenseCategories;
+    if (!list.includes(this.editCategory)) {
+      this.editCategory = list[0];
+    }
   }
 
   submit(): void {
