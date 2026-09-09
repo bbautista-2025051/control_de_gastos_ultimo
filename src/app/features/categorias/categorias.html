@@ -120,11 +120,11 @@
       @if (view() === 'GASTOS') {
         <section class="cat-stats">
           <article class="kpi-card">
-            <p class="kpi-label">Presupuesto mensual total</p>
-            <p class="kpi-value">{{ money(totalBudget()) }}</p>
+            <p class="kpi-label">Ingresos del mes</p>
+            <p class="kpi-value kpi-value-green">{{ money(totalBudget()) }}</p>
           </article>
           <article class="kpi-card">
-            <p class="kpi-label">Gastado este mes</p>
+            <p class="kpi-label">Gastos del mes</p>
             <p class="kpi-value kpi-value-red">{{ money(spentMonth()) }}</p>
           </article>
           <article class="kpi-card">
@@ -133,14 +133,21 @@
           </article>
         </section>
 
+        @if (exceedsIncome()) {
+          <div class="set-error-box cat-over-banner" role="alert">
+            Has superado tus ingresos del mes. Reduce tus gastos para volver a
+            estar dentro del presupuesto.
+          </div>
+        }
+
         <section class="section-head">
           <h2 class="section-title">Categorías de gasto</h2>
-          <span class="section-badge">8 categorías</span>
+          <span class="section-badge">{{ expenseCategories.length }} categorías</span>
         </section>
 
         <section class="cat-grid">
           @for (cat of expenseCards(); track cat.name) {
-            <article class="cat-card">
+            <article class="cat-card" [class.cat-card-over]="cat.over">
               <span class="cat-badge">
                 <svg
                   width="10"
@@ -156,7 +163,7 @@
                   <rect x="3" y="11" width="18" height="11" rx="2" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
-                Fija
+                Calculada
               </span>
               <span class="cat-ic" [style.background]="cat.color + '1f'" [style.color]="cat.color">
                 @switch (cat.icon) {
@@ -206,6 +213,11 @@
                       <path d="M2 17h5" />
                       <path d="M17 17h5" />
                       <path d="M17 7h5" />
+                    </svg>
+                  }
+                  @case ("shirt") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23Z" />
                     </svg>
                   }
                   @case ("dots") {

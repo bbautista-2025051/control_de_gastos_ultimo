@@ -15,109 +15,123 @@
     </div>
 
     <app-mouse-spotlight>
-      <form
-        class="glass-strong panel login-card"
-        [formGroup]="form"
-        (ngSubmit)="submit()"
-        novalidate
-      >
-        <div>
-          <label class="field-label" for="email">Correo electrónico</label>
-          <input
-            id="email"
-            class="neon-input"
-            type="email"
-            autocomplete="email"
-            formControlName="email"
-            placeholder="sucorreo@ejemplo.com"
-          />
-          @if (email.invalid && (email.dirty || email.touched)) {
-            <p class="field-error">Ingresa un correo electrónico válido.</p>
+      <div class="glass-strong panel login-card">
+        <div class="google-btn-wrap">
+          <div #googleBtn class="google-btn-container"></div>
+          @if (googlePending) {
+            <p class="google-pending">Iniciando sesión con Google...</p>
           }
         </div>
 
-        <div>
-          <label class="field-label" for="password">Contraseña</label>
-          <div class="password-wrap">
+        <div class="divider">
+          <span class="divider-line"></span>
+          <span class="divider-text">o</span>
+          <span class="divider-line"></span>
+        </div>
+
+        <form
+          [formGroup]="form"
+          (ngSubmit)="submit()"
+          novalidate
+        >
+          <div>
+            <label class="field-label" for="email">Correo electrónico</label>
             <input
-              id="password"
-              class="neon-input password-input"
-              [type]="showPassword ? 'text' : 'password'"
-              autocomplete="current-password"
-              formControlName="password"
-              placeholder="••••••••"
+              id="email"
+              class="neon-input"
+              type="email"
+              autocomplete="email"
+              formControlName="email"
+              placeholder="sucorreo@ejemplo.com"
             />
-            <button
-              class="toggle-btn"
-              type="button"
-              [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-              [attr.aria-pressed]="showPassword"
-              (click)="showPassword = !showPassword"
-            >
-              @if (showPassword) {
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-                </svg>
-              } @else {
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                  <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                </svg>
-              }
-            </button>
+            @if (email.invalid && (email.dirty || email.touched)) {
+              <p class="field-error">Ingresa un correo electrónico válido.</p>
+            }
           </div>
 
-          @if (strengthMeta()) {
-            <div class="strength">
-              <div class="strength-bar">
-                @for (level of strengthSegments; track level) {
-                  <span
-                    class="strength-segment"
-                    [style.background]="level <= passwordScore() ? strengthMeta()!.bar : 'rgba(51, 65, 85, 0.6)'"
-                  ></span>
+          <div>
+            <label class="field-label" for="password">Contraseña</label>
+            <div class="password-wrap">
+              <input
+                id="password"
+                class="neon-input password-input"
+                [type]="showPassword ? 'text' : 'password'"
+                autocomplete="current-password"
+                formControlName="password"
+                placeholder="••••••••"
+              />
+              <button
+                class="toggle-btn"
+                type="button"
+                [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                [attr.aria-pressed]="showPassword"
+                (click)="showPassword = !showPassword"
+              >
+                @if (showPassword) {
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                  </svg>
+                } @else {
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                    <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  </svg>
                 }
-              </div>
-              <p class="strength-label" [style.color]="strengthMeta()!.text">
-                Fortaleza: {{ strengthMeta()!.label }}
-              </p>
+              </button>
             </div>
+
+            @if (strengthMeta()) {
+              <div class="strength">
+                <div class="strength-bar">
+                  @for (level of strengthSegments; track level) {
+                    <span
+                      class="strength-segment"
+                      [style.background]="level <= passwordScore() ? strengthMeta()!.bar : 'rgba(51, 65, 85, 0.6)'"
+                    ></span>
+                  }
+                </div>
+                <p class="strength-label" [style.color]="strengthMeta()!.text">
+                  Fortaleza: {{ strengthMeta()!.label }}
+                </p>
+              </div>
+            }
+
+            @if (password.invalid && (password.dirty || password.touched)) {
+              <p class="field-error">Ingresa su contraseña.</p>
+            }
+          </div>
+
+          @if (errorMessage) {
+            <div class="login-error">{{ errorMessage }}</div>
           }
 
-          @if (password.invalid && (password.dirty || password.touched)) {
-            <p class="field-error">Ingresa su contraseña.</p>
-          }
-        </div>
-
-        @if (errorMessage) {
-          <div class="login-error">{{ errorMessage }}</div>
-        }
-
-        <app-magnetic-button>
-          <button class="neon-btn login-submit" type="submit" [disabled]="pending">
-            {{ pending ? "Ingresando..." : "Ingresar" }}
-          </button>
-        </app-magnetic-button>
-      </form>
+          <app-magnetic-button>
+            <button class="neon-btn login-submit" type="submit" [disabled]="pending">
+              {{ pending ? "Ingresando..." : "Ingresar" }}
+            </button>
+          </app-magnetic-button>
+        </form>
+      </div>
     </app-mouse-spotlight>
   </div>
 </div>

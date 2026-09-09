@@ -101,6 +101,7 @@
             </svg>
             Perfil
           </button>
+          @if (canChangePassword()) {
           <button
             type="button"
             class="set-side-item"
@@ -123,6 +124,7 @@
             </svg>
             Contraseña
           </button>
+          }
           <button
             type="button"
             class="set-side-item"
@@ -216,7 +218,7 @@
               </div>
             </form>
           </section>
-          } @else if (section() === 'password') {
+          } @else if (canChangePassword() && section() === 'password') {
           <section class="set-card">
             <div class="set-card-head">
               <h2 class="set-card-title">Cambiar contraseña</h2>
@@ -418,6 +420,12 @@
               <div class="set-info-row">
                 <dt>ID de cuenta</dt>
                 <dd class="set-info-mono">{{ user()?.id }}</dd>
+              </div>
+              <div class="set-info-row">
+                <dt>Método de acceso</dt>
+                <dd>
+                  {{ user()?.hasPassword ? 'Correo y contraseña' : 'Google' }}
+                </dd>
               </div>
             </dl>
           </section>

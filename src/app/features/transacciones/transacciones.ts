@@ -26,6 +26,9 @@ const money = (value: number): string =>
     currency: "GTQ",
   }).format(value);
 
+const amountOnly = (value: number): string =>
+  value.toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 const CATEGORY_TONES: Record<string, string> = {
   "Alimentación": "emerald",
   "Transporte": "cyan",

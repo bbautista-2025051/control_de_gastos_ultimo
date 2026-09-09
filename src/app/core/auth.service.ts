@@ -32,6 +32,18 @@ export class AuthService {
       );
   }
 
+  googleLogin(credential: string): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>("/api/auth/google", { credential })
+      .pipe(
+        tap(({ token, user }) => {
+          localStorage.setItem(TOKEN_KEY, token);
+          this.userSignal.set(user);
+          this.startInactivityTracking();
+        })
+      );
+  }
+
   me(): Observable<MeResponse> {
     return this.http.get<MeResponse>("/api/auth/me").pipe(
       tap(({ user }) => {

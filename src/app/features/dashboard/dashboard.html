@@ -76,6 +76,28 @@
         </p>
       </section>
 
+      @if (exceedsIncome()) {
+        <div class="dash-over-banner" role="alert">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+          </svg>
+          <p>
+            <b>Has superado tus ingresos del mes.</b> Tus gastos actuales
+            exceden lo que ingresaste. Registra un ingreso o reduce tus gastos.
+          </p>
+        </div>
+      }
+
       <section class="kpi-grid" [class.chart-refresh]="chartPulse()">
         @for (kpi of kpis(); track kpi.label) {
           <article class="kpi-card">

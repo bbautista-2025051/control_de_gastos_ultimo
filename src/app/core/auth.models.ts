@@ -3,6 +3,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: "ADMIN" | "USER";
+  hasPassword: boolean;
   createdAt: string;
 }
 

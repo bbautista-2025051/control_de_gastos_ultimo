@@ -32,6 +32,7 @@ export class Ajustes implements OnInit {
   private readonly toast = inject(ToastService);
 
   readonly user = this.auth.user;
+  readonly canChangePassword = computed(() => this.user()?.hasPassword ?? true);
   readonly menuOpen = signal(false);
   readonly section = signal<SectionKey>("perfil");
   loadError = false;

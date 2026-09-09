@@ -1,16 +1,22 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { jwtVerify, createRemoteJWKSet } from "jose";
 import { prisma } from "../../../lib/prisma";
 import { env } from "../../../config/env";
 import { HttpError } from "../../../lib/errors";
 import type { AuthPayload } from "../../../middlewares/auth.middleware";
 import type {
   ChangePasswordInput,
+  GoogleLoginInput,
   LoginInput,
   UpdateProfileInput,
 } from "../auth.schemas";
 
 const TOKEN_EXPIRATION = "30m";
+
+const googleJwks = createRemoteJWKSet(
+  new URL("https://www.googleapis.com/oauth2/v3/certs")
+);
 
 const publicUserSelect = {
   id: true,
@@ -20,22 +26,38 @@ const publicUserSelect = {
   createdAt: true,
 } as const;
 
+type PublicUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: "ADMIN" | "USER";
+  createdAt: Date;
+  passwordHash: string | null;
+};
+
+function toSafeUser(
+  user: PublicUser & { isActive?: boolean; googleId?: string | null }
+) {
+  const { passwordHash, isActive, ...rest } = user;
+  void passwordHash;
+  void isActive;
+  return { ...rest, hasPassword: user.passwordHash != null };
+}
+
 export class AuthService {
   async login(input: LoginInput) {
     const user = await prisma.user.findUnique({
       where: { email: input.email },
       select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
+        ...publicUserSelect,
         isActive: true,
         passwordHash: true,
       },
     });
 
     const isValid =
-      user && (await bcrypt.compare(input.password, user.passwordHash));
+      user?.passwordHash != null &&
+      (await bcrypt.compare(input.password, user.passwordHash));
 
     if (!user || !isValid) {
       throw new HttpError(401, "Credenciales incorrectas.");
@@ -50,9 +72,71 @@ export class AuthService {
       expiresIn: TOKEN_EXPIRATION,
     });
 
-    const { passwordHash: _passwordHash, isActive: _isActive, ...safeUser } = user;
-    void _passwordHash;
-    void _isActive;
+    const safeUser = toSafeUser(user);
+
+    return { token, user: safeUser };
+  }
+
+  async googleLogin(input: GoogleLoginInput) {
+    let payload: Record<string, unknown>;
+    try {
+      const { payload: verified } = await jwtVerify(
+        input.credential,
+        googleJwks,
+        { issuer: ["https://accounts.google.com", "accounts.google.com"] }
+      );
+      payload = verified as Record<string, unknown>;
+    } catch {
+      throw new HttpError(401, "Credencial de Google inválida.");
+    }
+
+    const googleId = payload.sub as string;
+    const email = payload.email as string;
+    const name = (payload.name as string) ?? email;
+
+    if (!googleId || !email) {
+      throw new HttpError(401, "Credencial de Google inválida.");
+    }
+
+    let user = await prisma.user.findUnique({
+      where: { googleId },
+      select: { ...publicUserSelect, isActive: true, passwordHash: true },
+    });
+
+    if (!user) {
+      user = await prisma.user.findUnique({
+        where: { email },
+        select: { ...publicUserSelect, isActive: true, googleId: true, passwordHash: true },
+      });
+
+      if (user) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { googleId },
+          select: { ...publicUserSelect, isActive: true, passwordHash: true },
+        });
+      } else {
+        user = await prisma.user.create({
+          data: {
+            name,
+            email,
+            googleId,
+          },
+          select: { ...publicUserSelect, isActive: true, passwordHash: true },
+        });
+      }
+    }
+
+    if (!user.isActive) {
+      throw new HttpError(403, "Tu cuenta está desactivada.");
+    }
+
+    const authPayload: AuthPayload = { userId: user.id, role: user.role };
+    const token = jwt.sign(authPayload, env.jwtSecret, {
+      expiresIn: TOKEN_EXPIRATION,
+    });
+
+    const safeUser = toSafeUser(user);
 
     return { token, user: safeUser };
   }
@@ -60,14 +144,14 @@ export class AuthService {
   async me(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: publicUserSelect,
+      select: { ...publicUserSelect, passwordHash: true },
     });
 
     if (!user) {
       throw new HttpError(404, "Usuario no encontrado.");
     }
 
-    return user;
+    return toSafeUser(user);
   }
 
   async updateProfile(userId: string, input: UpdateProfileInput) {
@@ -111,6 +195,10 @@ export class AuthService {
 
     if (!user) {
       throw new HttpError(404, "Usuario no encontrado.");
+    }
+
+    if (!user.passwordHash) {
+      throw new HttpError(400, "Esta cuenta usa Google, selecciona tu contraseña desde el perfil.");
     }
 
     const isValid = await bcrypt.compare(

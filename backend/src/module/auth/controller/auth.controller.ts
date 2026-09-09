@@ -49,4 +49,13 @@ export class AuthController {
   logout = async (_req: Request, res: Response) => {
     res.json({ message: "Sesión cerrada." });
   };
+
+  googleLogin = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.authService.googleLogin(req.body);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

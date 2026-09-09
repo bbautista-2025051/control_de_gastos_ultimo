@@ -30,9 +30,11 @@ export interface DashboardSummary {
   balance: number;
   incomeMonth: number;
   expenseMonth: number;
+  exceedsIncome: boolean;
   budget: BudgetSummary;
   categories: CategorySum[];
   categoryBudgets: Record<string, number>;
+  categoryBudgetPercents: Record<string, number>;
   monthly: MonthSum[];
   alerts: BudgetAlert[];
 }

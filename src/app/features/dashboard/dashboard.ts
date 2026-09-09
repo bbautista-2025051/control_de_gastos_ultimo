@@ -189,6 +189,10 @@ export class Dashboard implements OnInit {
 
   readonly alerts = computed(() => this.summary()?.alerts ?? []);
 
+  readonly exceedsIncome = computed(
+    () => this.summary()?.exceedsIncome ?? false
+  );
+
   readonly chart = computed<MonthSum[]>(() => this.summary()?.monthly ?? []);
 
   readonly chartMax = computed(() =>

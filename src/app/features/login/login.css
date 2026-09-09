@@ -137,3 +137,44 @@
   object-fit: fill;
   border-radius: 1rem;
 }
+
+/* ---------- Botón de Google ---------- */
+
+.google-btn-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.google-btn-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.google-pending {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ---------- Divisor "o" ---------- */
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.divider-text {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  user-select: none;
+}

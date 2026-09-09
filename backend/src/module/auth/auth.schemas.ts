@@ -54,6 +54,13 @@ export const changePasswordSchema = z
     path: ["confirmPassword"],
   });
 
+export const googleLoginSchema = z.object({
+  credential: z
+    .string({ error: "Credencial de Google requerida." })
+    .min(1, { error: "Credencial de Google requerida." }),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type GoogleLoginInput = z.infer<typeof googleLoginSchema>;

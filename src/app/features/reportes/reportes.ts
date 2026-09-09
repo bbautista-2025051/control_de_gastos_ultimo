@@ -81,6 +81,7 @@ export class Reportes implements OnInit {
       expense = months.reduce((s, m) => s + (m.expense ?? 0), 0);
     }
     const balance = income - expense;
+    const topCategory = data?.categories?.[0];
     return [
       {
         icon: "trend-up",
@@ -110,9 +111,11 @@ export class Reportes implements OnInit {
         icon: "bars",
         tone: "teal",
         label: "Categoría con más gasto",
-        value: "Sin datos",
-        sub: "Registre transacciones",
-        subClass: "kpi-sub-muted",
+        value: topCategory
+          ? `${topCategory.category}: ${money(topCategory.amount)}`
+          : "Sin datos",
+        sub: topCategory ? "del mes actual" : "Registre transacciones",
+        subClass: topCategory ? "kpi-sub" : "kpi-sub-muted",
       },
     ];
   });

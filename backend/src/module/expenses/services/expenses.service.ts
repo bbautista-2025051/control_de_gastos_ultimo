@@ -24,20 +24,25 @@ const MONTH_LABELS = [
   "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
 ] as const;
 
-// Presupuesto mensual por categoría (misma fuente que la vista de Categorías).
-const CATEGORY_BUDGETS: Record<string, number> = {
-  "Alimentación": 700,
-  "Transporte": 450,
-  "Vivienda": 1200,
-  "Servicios": 400,
-  "Salud": 300,
-  "Ocio": 150,
-  "Educación": 250,
-  "Ropa": 150,
-  "Otros": 100,
+// Presupuesto por categoría: % de los ingresos del mes.
+// Los gastos no son fijos: el presupuesto total equivale a los ingresos del mes
+// y cada categoría recibe un porcentaje de ellos.
+const CATEGORY_BUDGET_PERCENTS: Record<string, number> = {
+  "Vivienda": 30,
+  "Alimentación": 20,
+  "Transporte": 15,
+  "Servicios": 10,
+  "Salud": 10,
+  "Educación": 5,
+  "Ocio": 5,
+  "Ropa": 3,
+  "Otros": 2,
 };
 
-const TOTAL_BUDGET = Object.values(CATEGORY_BUDGETS).reduce((a, b) => a + b, 0);
+const PERCENT_TOTAL = Object.values(CATEGORY_BUDGET_PERCENTS).reduce(
+  (a, b) => a + b,
+  0
+);
 
 export class ExpensesService {
   isAdmin(role: Role) {
@@ -102,16 +107,27 @@ export class ExpensesService {
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount);
 
-    const remaining = Math.max(0, TOTAL_BUDGET - expenseMonth);
+    // El presupuesto total equivale a los ingresos del mes. Cada categoría recibe
+    // un porcentaje de esos ingresos. Si no hay ingresos registrados, no hay
+    // presupuesto disponible.
+    const categoryBudgets: Record<string, number> = {};
+    for (const [category, percent] of Object.entries(CATEGORY_BUDGET_PERCENTS)) {
+      categoryBudgets[category] = Math.round(incomeMonth * percent) / 100;
+    }
+
+    const totalLimit = Math.round(incomeMonth * 100) / 100;
+    const remaining = Math.max(0, totalLimit - expenseMonth);
     const budgetPercent =
-      TOTAL_BUDGET > 0
-        ? Math.max(0, Math.round((remaining / TOTAL_BUDGET) * 100))
+      totalLimit > 0
+        ? Math.max(0, Math.round((remaining / totalLimit) * 100))
         : 0;
+
+    const exceedsIncome = expenseMonth > totalLimit;
 
     const alerts = Array.from(categorySums.entries())
       .map(([category, spent]) => {
-        const limit = CATEGORY_BUDGETS[category];
-        if (!limit) return null;
+        const limit = categoryBudgets[category];
+        if (!limit || limit <= 0) return null;
         return {
           category,
           spent,
@@ -130,14 +146,16 @@ export class ExpensesService {
       balance,
       incomeMonth,
       expenseMonth,
+      exceedsIncome,
       budget: {
-        limit: TOTAL_BUDGET,
+        limit: totalLimit,
         spent: expenseMonth,
         remaining,
         percent: budgetPercent,
       },
       categories,
-      categoryBudgets: CATEGORY_BUDGETS,
+      categoryBudgets,
+      categoryBudgetPercents: CATEGORY_BUDGET_PERCENTS,
       monthly,
       alerts,
     };

@@ -13,4 +13,5 @@ export const env = {
   databaseUrl: required("DATABASE_URL"),
   jwtSecret: required("JWT_SECRET"),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:3000",
+  googleClientId: required("GOOGLE_CLIENTID"),
 };

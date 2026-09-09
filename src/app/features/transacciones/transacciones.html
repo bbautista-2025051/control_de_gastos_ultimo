@@ -354,7 +354,7 @@
                         class="tx-amt"
                         [class]="item.type === 'INCOME' ? 'amt-pos' : 'amt-neg'"
                       >
-                        {{ item.type === "INCOME" ? "+" : "−" }} {{ money(item.amount) }}
+                        {{ item.amount }}
                       </p>
                       <div class="tx-actions">
                         <button class="tx-action-btn tx-action-edit" type="button" (click)="openEdit(item)" title="Editar transacción">

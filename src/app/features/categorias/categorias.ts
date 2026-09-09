@@ -17,18 +17,18 @@ export interface ExpenseCategory {
   name: string;
   icon: string;
   color: string;
-  budget: number;
 }
 
 export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
-  { name: "Alimentación", icon: "cutlery", color: "#f5a524", budget: 700 },
-  { name: "Transporte", icon: "car", color: "#38bdf8", budget: 450 },
-  { name: "Vivienda", icon: "home", color: "#2dd4bf", budget: 1200 },
-  { name: "Servicios", icon: "bolt", color: "#60a5fa", budget: 400 },
-  { name: "Salud", icon: "heart", color: "#f76a7a", budget: 300 },
-  { name: "Educación", icon: "book", color: "#a78bfa", budget: 250 },
-  { name: "Ocio", icon: "film", color: "#f472b6", budget: 150 },
-  { name: "Otros", icon: "dots", color: "#94a3b8", budget: 100 },
+  { name: "Alimentación", icon: "cutlery", color: "#f5a524" },
+  { name: "Transporte", icon: "car", color: "#38bdf8" },
+  { name: "Vivienda", icon: "home", color: "#2dd4bf" },
+  { name: "Servicios", icon: "bolt", color: "#60a5fa" },
+  { name: "Salud", icon: "heart", color: "#f76a7a" },
+  { name: "Educación", icon: "book", color: "#a78bfa" },
+  { name: "Ocio", icon: "film", color: "#f472b6" },
+  { name: "Ropa", icon: "shirt", color: "#f59e0b" },
+  { name: "Otros", icon: "dots", color: "#94a3b8" },
 ];
 
 export interface IncomeCategory {
@@ -44,9 +44,11 @@ export const INCOME_CATEGORIES: IncomeCategory[] = [
 ];
 
 interface ExpenseCardView extends ExpenseCategory {
+  budget: number;
   spent: number;
   available: number;
   percent: number;
+  over: boolean;
 }
 
 @Component({
@@ -72,29 +74,22 @@ export class Categorias implements OnInit {
   readonly expenseCategories = EXPENSE_CATEGORIES;
   readonly incomeCategories = INCOME_CATEGORIES;
 
-  readonly totalBudget = computed(() =>
-    this.incomeTransactions()
-      .filter(
-        (t) => t.category === "Salario" && this.isThisMonth(t.date)
-      )
-      .reduce((sum, t) => sum + t.amount, 0)
+  readonly totalBudget = computed(
+    () => this.summary()?.incomeMonth ?? 0
   );
 
-  readonly spentMonth = computed(() => {
-    const data = this.summary();
-    const byName = new Map(
-      (data?.categories ?? []).map((c) => [c.category, c.amount])
-    );
-    let total = 0;
-    for (const cat of EXPENSE_CATEGORIES) {
-      total += byName.get(cat.name) ?? 0;
-    }
-    return total;
-  });
+  readonly spentMonth = computed(
+    () => this.summary()?.expenseMonth ?? 0
+  );
 
   readonly availableMonth = computed(() =>
     Math.max(0, this.totalBudget() - this.spentMonth())
   );
+
+  readonly exceedsIncome = computed(() => {
+    const data = this.summary();
+    return data ? data.exceedsIncome : false;
+  });
 
   readonly expenseCards = computed<ExpenseCardView[]>(() => {
     const data = this.summary();
@@ -103,12 +98,12 @@ export class Categorias implements OnInit {
     );
     const budgets = data?.categoryBudgets ?? {};
     return EXPENSE_CATEGORIES.map((cat) => {
-      const budget = budgets[cat.name] ?? cat.budget;
+      const budget = budgets[cat.name] ?? 0;
       const spent = byName.get(cat.name) ?? 0;
       const available = Math.max(0, budget - spent);
       const percent =
-        budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : 0;
-      return { ...cat, budget, spent, available, percent };
+        budget > 0 ? Math.round((spent / budget) * 100) : 0;
+      return { ...cat, budget, spent, available, percent, over: spent > budget };
     });
   });
 
