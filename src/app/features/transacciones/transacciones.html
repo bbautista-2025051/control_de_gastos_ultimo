@@ -15,17 +15,44 @@
       <nav class="nav-tabs" aria-label="Navegación principal">
         <a class="nav-tab" routerLink="/dashboard" routerLinkActive="nav-tab-active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
         <a class="nav-tab nav-tab-active" routerLink="/transacciones" routerLinkActive="nav-tab-active">Transacciones</a>
-        <a class="nav-tab">Categorías</a>
-        <a class="nav-tab">Reportes</a>
+        <a class="nav-tab" routerLink="/categorias" routerLinkActive="nav-tab-active">Categorías</a>
+        <a class="nav-tab" routerLink="/reportes" routerLinkActive="nav-tab-active">Reportes</a>
       </nav>
 
       <div class="avatar-wrap">
         <button class="avatar" type="button" (click)="toggleMenu()" title="Menú de usuario">
-          {{ initials(user()?.name) }}
+          @if (user()?.picture && !avatarBroken()) {
+            <img
+              class="avatar-img"
+              [src]="user()!.picture"
+              [alt]="user()?.name ?? 'Avatar de usuario'"
+              (error)="onAvatarError()"
+            />
+          } @else {
+            {{ initials(user()?.name) }}
+          }
         </button>
         @if (menuOpen()) {
           <div class="menu-backdrop" (click)="menuOpen.set(false)"></div>
           <div class="user-menu">
+            <div class="menu-profile">
+              <div class="menu-profile-avatar">
+                @if (user()?.picture && !avatarBroken()) {
+                  <img
+                    class="avatar-img"
+                    [src]="user()!.picture"
+                    [alt]="user()?.name ?? 'Avatar de usuario'"
+                    (error)="onAvatarError()"
+                  />
+                } @else {
+                  {{ initials(user()?.name) }}
+                }
+              </div>
+              <div class="menu-profile-info">
+                <strong>{{ user()?.name ?? "Usuario" }}</strong>
+                <span>{{ user()?.email ?? "" }}</span>
+              </div>
+            </div>
             <button class="user-menu-item" type="button" (click)="settings()">
               <svg
                 width="16"
@@ -248,7 +275,8 @@
                 class="search-input"
                 type="text"
                 placeholder="Buscar por descripción o categoría…"
-                [(ngModel)]="search"
+                [ngModel]="search()"
+                (ngModelChange)="search.set($event)"
                 name="search"
               />
             </div>
@@ -353,8 +381,23 @@
                         class="tx-amt"
                         [class]="item.type === 'INCOME' ? 'amt-pos' : 'amt-neg'"
                       >
-                        {{ item.type === "INCOME" ? "+" : "−" }} {{ money(item.amount) }}
+                        Q{{ formatAmount(item.amount) }}
                       </p>
+                      <div class="tx-actions">
+                        <button class="tx-action-btn tx-action-edit" type="button" (click)="openEdit(item)" title="Editar transacción">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                            <path d="m15 5 4 4" />
+                          </svg>
+                        </button>
+                        <button class="tx-action-btn tx-action-delete" type="button" (click)="confirmDelete(item)" title="Eliminar transacción">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M3 6h18" />
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </li>
                 }
@@ -423,7 +466,7 @@
                     [(ngModel)]="category"
                     name="category"
                   >
-                    @for (option of expenseCategories; track option) {
+                    @for (option of selectedCategories(); track option) {
                       <option [value]="option">{{ option }}</option>
                     }
                   </select>
@@ -462,6 +505,7 @@
                   id="tx-date"
                   class="tx-input"
                   type="date"
+                  [max]="todayLocalDate()"
                   [(ngModel)]="date"
                   name="date"
                 />
@@ -490,6 +534,135 @@
       </section>
     }
   </main>
+
+  @if (editing()) {
+    <div class="modal-backdrop" (click)="closeEdit()"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h2 class="modal-title">Editar transacción</h2>
+        <button class="modal-close" type="button" (click)="closeEdit()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      </div>
+      <form class="modal-form" (ngSubmit)="saveEdit()">
+        <div class="toggle">
+          <button
+            type="button"
+            class="toggle-btn"
+            [class.toggle-on]="editTipo === 'INCOME'"
+            (click)="setEditTipo('INCOME')"
+          >
+            Ingreso
+          </button>
+          <button
+            type="button"
+            class="toggle-btn"
+            [class.toggle-egreso]="editTipo === 'EXPENSE'"
+            (click)="setEditTipo('EXPENSE')"
+          >
+            Egreso
+          </button>
+        </div>
+
+        <div class="tx-field">
+          <label class="tx-label" for="edit-amount">Monto</label>
+          <div class="money-input">
+            <span class="money-prefix">Q</span>
+            <input
+              id="edit-amount"
+              class="tx-input"
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="0.00"
+              [(ngModel)]="editAmount"
+              name="editAmount"
+            />
+          </div>
+        </div>
+
+        <div class="tx-field">
+          <label class="tx-label" for="edit-category">Categoría</label>
+          <div class="select-wrap">
+            <select
+              id="edit-category"
+              class="tx-select"
+              [(ngModel)]="editCategory"
+              name="editCategory"
+            >
+              @for (option of editTipo === 'INCOME' ? incomeCategories : expenseCategories; track option) {
+                <option [value]="option">{{ option }}</option>
+              }
+            </select>
+            <svg class="select-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="tx-field">
+          <label class="tx-label" for="edit-description">Descripción</label>
+          <input
+            id="edit-description"
+            class="tx-input"
+            type="text"
+            placeholder="Ej: Supermercado La Torre"
+            [(ngModel)]="editDescription"
+            name="editDescription"
+          />
+        </div>
+
+        <div class="tx-field">
+          <label class="tx-label" for="edit-date">Fecha</label>
+          <input
+            id="edit-date"
+            class="tx-input"
+            type="date"
+            [max]="todayLocalDate()"
+            [(ngModel)]="editDate"
+            name="editDate"
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn-cancel" type="button" (click)="closeEdit()">Cancelar</button>
+          <button class="modal-btn-save" type="submit" [disabled]="savingEdit">
+            {{ savingEdit ? "Guardando…" : "Guardar cambios" }}
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  @if (deleting()) {
+    <div class="modal-backdrop" (click)="cancelDelete()"></div>
+    <div class="modal-panel modal-confirm">
+      <div class="modal-head">
+        <h2 class="modal-title">Eliminar transacción</h2>
+        <button class="modal-close" type="button" (click)="cancelDelete()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      </div>
+      <p class="modal-text">
+        ¿Está seguro que desea eliminar la transacción
+        "<strong>{{ deleting()!.description }}</strong>"
+        por <strong>{{ money(deleting()!.amount) }}</strong>?
+        Esta acción no se puede deshacer.
+      </p>
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" type="button" (click)="cancelDelete()">Cancelar</button>
+        <button class="modal-btn-danger" type="button" (click)="deleteTransaction()" [disabled]="deletingTransaction">
+          {{ deletingTransaction ? "Eliminando…" : "Eliminar" }}
+        </button>
+      </div>
+    </div>
+  }
 
   <footer class="tx-footer">
     DATANEX · Control de Gastos — Uso personal y familiar

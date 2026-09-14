@@ -24,24 +24,84 @@ const MONTH_LABELS = [
   "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
 ] as const;
 
-// Presupuesto mensual por categoría (uso demo, sin login).
-const CATEGORY_BUDGETS: Record<string, number> = {
-  "Alimentación": 850,
-  "Transporte": 500,
-  "Vivienda": 900,
-  "Servicios": 300,
-  "Salud": 200,
-  "Ocio": 150,
-  "Educación": 300,
-  "Ropa": 150,
-  "Otros": 200,
+// Presupuesto por categoría: % de los ingresos del mes.
+// Los gastos no son fijos: el presupuesto total equivale a los ingresos del mes
+// y cada categoría recibe un porcentaje de ellos.
+const CATEGORY_BUDGET_PERCENTS: Record<string, number> = {
+  "Vivienda": 30,
+  "Alimentación": 20,
+  "Transporte": 15,
+  "Servicios": 10,
+  "Salud": 10,
+  "Educación": 5,
+  "Ocio": 5,
+  "Ropa": 3,
+  "Otros": 2,
 };
 
-const TOTAL_BUDGET = Object.values(CATEGORY_BUDGETS).reduce((a, b) => a + b, 0);
+const PERCENT_TOTAL = Object.values(CATEGORY_BUDGET_PERCENTS).reduce(
+  (a, b) => a + b,
+  0
+);
 
 export class ExpensesService {
   isAdmin(role: Role) {
     return role === "ADMIN";
+  }
+
+  private isFutureDate(date: Date): boolean {
+    const now = new Date();
+    const endOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999
+    );
+    return date.getTime() > endOfToday.getTime();
+  }
+
+  private async assertExpenseDoesNotExceedIncome(
+    userId: string,
+    date: Date,
+    amount: number,
+    excludeId?: string
+  ) {
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+    const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+
+    const [expenses, incomes] = await Promise.all([
+      prisma.expense.findMany({
+        where: {
+          userId,
+          type: "EXPENSE",
+          date: { gte: monthStart, lt: monthEnd },
+          ...(excludeId ? { NOT: { id: excludeId } } : {}),
+        },
+        select: { amount: true },
+      }),
+      prisma.expense.findMany({
+        where: {
+          userId,
+          type: "INCOME",
+          date: { gte: monthStart, lt: monthEnd },
+        },
+        select: { amount: true },
+      }),
+    ]);
+
+    const totalExpense =
+      expenses.reduce((sum, e) => sum + Number(e.amount), 0) + amount;
+    const totalIncome = incomes.reduce((sum, i) => sum + Number(i.amount), 0);
+
+    if (totalExpense > totalIncome) {
+      throw new HttpError(
+        400,
+        "Los gastos de este mes no pueden exceder los ingresos registrados."
+      );
+    }
   }
 
   async summary(actor: { userId: string; role: Role }) {
@@ -102,16 +162,27 @@ export class ExpensesService {
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount);
 
-    const remaining = Math.max(0, TOTAL_BUDGET - expenseMonth);
+    // El presupuesto total equivale a los ingresos del mes. Cada categoría recibe
+    // un porcentaje de esos ingresos. Si no hay ingresos registrados, no hay
+    // presupuesto disponible.
+    const categoryBudgets: Record<string, number> = {};
+    for (const [category, percent] of Object.entries(CATEGORY_BUDGET_PERCENTS)) {
+      categoryBudgets[category] = Math.round(incomeMonth * percent) / 100;
+    }
+
+    const totalLimit = Math.round(incomeMonth * 100) / 100;
+    const remaining = Math.max(0, totalLimit - expenseMonth);
     const budgetPercent =
-      TOTAL_BUDGET > 0
-        ? Math.max(0, Math.round((remaining / TOTAL_BUDGET) * 100))
+      totalLimit > 0
+        ? Math.max(0, Math.round((remaining / totalLimit) * 100))
         : 0;
+
+    const exceedsIncome = expenseMonth > totalLimit;
 
     const alerts = Array.from(categorySums.entries())
       .map(([category, spent]) => {
-        const limit = CATEGORY_BUDGETS[category];
-        if (!limit) return null;
+        const limit = categoryBudgets[category];
+        if (!limit || limit <= 0) return null;
         return {
           category,
           spent,
@@ -130,13 +201,16 @@ export class ExpensesService {
       balance,
       incomeMonth,
       expenseMonth,
+      exceedsIncome,
       budget: {
-        limit: TOTAL_BUDGET,
+        limit: totalLimit,
         spent: expenseMonth,
         remaining,
         percent: budgetPercent,
       },
       categories,
+      categoryBudgets,
+      categoryBudgetPercents: CATEGORY_BUDGET_PERCENTS,
       monthly,
       alerts,
     };
@@ -188,13 +262,27 @@ export class ExpensesService {
   }
 
   async create(actor: { userId: string }, input: CreateExpenseInput) {
+    const date = input.date ?? new Date();
+
+    if (this.isFutureDate(date)) {
+      throw new HttpError(400, "La fecha no puede ser en el futuro.");
+    }
+
+    if (input.type === "EXPENSE") {
+      await this.assertExpenseDoesNotExceedIncome(
+        actor.userId,
+        date,
+        Number(input.amount)
+      );
+    }
+
     return prisma.expense.create({
       data: {
         description: input.description,
         amount: input.amount,
         type: input.type,
         category: input.category,
-        date: input.date,
+        date,
         userId: actor.userId,
       },
       select: expenseSelect,
@@ -207,6 +295,25 @@ export class ExpensesService {
     input: UpdateExpenseInput
   ) {
     const existing = await this.getById(actor, id);
+
+    const nextType = input.type ?? existing.type;
+    const nextAmount = input.amount !== undefined ? Number(input.amount) : Number(existing.amount);
+    const nextDate = input.date ?? new Date(existing.date);
+
+    if (!this.isAdmin(actor.role)) {
+      if (this.isFutureDate(nextDate)) {
+        throw new HttpError(400, "La fecha no puede ser en el futuro.");
+      }
+
+      if (nextType === "EXPENSE") {
+        await this.assertExpenseDoesNotExceedIncome(
+          actor.userId,
+          nextDate,
+          nextAmount,
+          existing.id
+        );
+      }
+    }
 
     return prisma.expense.update({
       where: { id: existing.id },

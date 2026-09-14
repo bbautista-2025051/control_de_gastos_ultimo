@@ -1,7 +1,7 @@
 import { Injectable, signal } from "@angular/core";
 
-const INACTIVITY_TIMEOUT = 5 * 1000;
-const WARNING_BEFORE = 3 * 1000;
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+const WARNING_BEFORE = 3 * 60 * 1000;
 
 const INTERACTION_EVENTS = [
   "click",

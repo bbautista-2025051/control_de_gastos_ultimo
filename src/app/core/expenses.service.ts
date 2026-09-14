@@ -1,5 +1,6 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
+import { map } from "rxjs";
 
 export interface CategorySum {
   category: string;
@@ -30,8 +31,11 @@ export interface DashboardSummary {
   balance: number;
   incomeMonth: number;
   expenseMonth: number;
+  exceedsIncome: boolean;
   budget: BudgetSummary;
   categories: CategorySum[];
+  categoryBudgets: Record<string, number>;
+  categoryBudgetPercents: Record<string, number>;
   monthly: MonthSum[];
   alerts: BudgetAlert[];
 }
@@ -85,7 +89,12 @@ export class ExpensesService {
     if (params.category !== undefined) {
       query["category"] = params.category;
     }
-    return this.http.get<ExpenseListResponse>("/api/expenses", { params: query });
+    return this.http.get<ExpenseListResponse>("/api/expenses", { params: query }).pipe(
+      map((res) => ({
+        ...res,
+        items: res.items.map((item) => ({ ...item, amount: Number(item.amount) })),
+      }))
+    );
   }
 
   create(input: {
@@ -96,5 +105,25 @@ export class ExpensesService {
     date?: string;
   }) {
     return this.http.post<{ expense: ExpenseItem }>("/api/expenses", input);
+  }
+
+  update(
+    id: string,
+    input: {
+      description?: string;
+      amount?: number;
+      type?: "INCOME" | "EXPENSE";
+      category?: string;
+      date?: string;
+    }
+  ) {
+    return this.http.patch<{ expense: ExpenseItem }>(
+      `/api/expenses/${id}`,
+      input
+    );
+  }
+
+  remove(id: string) {
+    return this.http.delete<{ message: string }>(`/api/expenses/${id}`);
   }
 }

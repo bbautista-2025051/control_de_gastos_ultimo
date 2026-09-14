@@ -19,7 +19,7 @@ export const authGuard: CanActivateFn = () => {
 
   if (!token || !isTokenValid(token)) {
     localStorage.removeItem(TOKEN_KEY);
-    toast.show("Su sesión ha expirado. Por favor, inicia sesión nuevamente.");
+    toast.error("Su sesión ha expirado. Por favor, inicie sesión nuevamente.", "Sesión expirada");
     return router.createUrlTree(["/login"]);
   }
 

@@ -22,7 +22,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error) => {
       if (error.status === 401) {
         localStorage.removeItem(TOKEN_KEY);
-        toast.show("Su sesión ha expirado. Por favor, inicia sesión nuevamente.");
+        toast.error("Su sesión ha expirado. Por favor, inicie sesión nuevamente.", "Sesión expirada");
         void router.navigate(["/login"]);
       }
       return throwError(() => error);

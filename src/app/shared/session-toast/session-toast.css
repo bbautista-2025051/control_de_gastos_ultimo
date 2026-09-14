@@ -28,6 +28,21 @@
   box-shadow: 0 18px 50px rgba(2, 6, 23, 0.6), 0 0 30px rgba(248, 113, 113, 0.12);
 }
 
+.toast-success {
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 18px 50px rgba(2, 6, 23, 0.6), 0 0 30px rgba(16, 185, 129, 0.12);
+}
+
+.toast-error {
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  box-shadow: 0 18px 50px rgba(2, 6, 23, 0.6), 0 0 30px rgba(248, 113, 113, 0.12);
+}
+
+.toast-info {
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  box-shadow: 0 18px 50px rgba(2, 6, 23, 0.6), 0 0 30px rgba(59, 130, 246, 0.12);
+}
+
 .warning-card {
   border: 1px solid rgba(251, 191, 36, 0.35);
   box-shadow: 0 18px 50px rgba(2, 6, 23, 0.6), 0 0 30px rgba(251, 191, 36, 0.15);
@@ -45,6 +60,36 @@
     transparent,
     rgba(252, 165, 165, 0.7),
     rgba(248, 113, 113, 0.5),
+    transparent
+  );
+}
+
+.toast-success::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(52, 211, 153, 0.7),
+    rgba(16, 185, 129, 0.5),
+    transparent
+  );
+}
+
+.toast-error::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(252, 165, 165, 0.7),
+    rgba(248, 113, 113, 0.5),
+    transparent
+  );
+}
+
+.toast-info::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(147, 197, 253, 0.7),
+    rgba(59, 130, 246, 0.5),
     transparent
   );
 }
@@ -72,6 +117,21 @@
   box-shadow: 0 0 20px rgba(248, 113, 113, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
+.toast-icon-success {
+  background: linear-gradient(135deg, #6ee7b7, #10b981);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.toast-icon-error {
+  background: linear-gradient(135deg, #fca5a5, #ef4444);
+  box-shadow: 0 0 20px rgba(248, 113, 113, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.toast-icon-info {
+  background: linear-gradient(135deg, #93c5fd, #3b82f6);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
 .warning-icon {
   background: linear-gradient(135deg, #fcd34d, #f59e0b);
   box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
@@ -86,6 +146,18 @@
   font-size: 0.9375rem;
   font-weight: 600;
   color: #fca5a5;
+}
+
+.toast-title-success {
+  color: #34d399;
+}
+
+.toast-title-error {
+  color: #fca5a5;
+}
+
+.toast-title-info {
+  color: #93c5fd;
 }
 
 .warning-title {

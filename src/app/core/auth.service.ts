@@ -32,6 +32,40 @@ export class AuthService {
       );
   }
 
+  register(
+    name: string,
+    email: string,
+    password: string,
+    confirmPassword: string
+  ): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>("/api/auth/register", {
+        name,
+        email,
+        password,
+        confirmPassword,
+      })
+      .pipe(
+        tap(({ token, user }) => {
+          localStorage.setItem(TOKEN_KEY, token);
+          this.userSignal.set(user);
+          this.startInactivityTracking();
+        })
+      );
+  }
+
+  googleLogin(credential: string): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>("/api/auth/google", { credential })
+      .pipe(
+        tap(({ token, user }) => {
+          localStorage.setItem(TOKEN_KEY, token);
+          this.userSignal.set(user);
+          this.startInactivityTracking();
+        })
+      );
+  }
+
   me(): Observable<MeResponse> {
     return this.http.get<MeResponse>("/api/auth/me").pipe(
       tap(({ user }) => {
@@ -41,6 +75,26 @@ export class AuthService {
         }
       })
     );
+  }
+
+  updateProfile(name: string, email: string): Observable<MeResponse> {
+    return this.http.patch<MeResponse>("/api/auth/me", { name, email }).pipe(
+      tap(({ user }) => {
+        this.userSignal.set(user);
+      })
+    );
+  }
+
+  changePassword(
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string
+  ): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>("/api/auth/change-password", {
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
   }
 
   logout(): void {
