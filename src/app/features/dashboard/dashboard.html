@@ -21,11 +21,38 @@
 
       <div class="avatar-wrap">
         <button class="avatar" type="button" (click)="toggleMenu()" title="Menú de usuario">
-          {{ initials(user()?.name) }}
+          @if (user()?.picture && !avatarBroken()) {
+            <img
+              class="avatar-img"
+              [src]="user()!.picture"
+              [alt]="user()?.name ?? 'Avatar de usuario'"
+              (error)="onAvatarError()"
+            />
+          } @else {
+            {{ initials(user()?.name) }}
+          }
         </button>
         @if (menuOpen()) {
           <div class="menu-backdrop" (click)="menuOpen.set(false)"></div>
           <div class="user-menu">
+            <div class="menu-profile">
+              <div class="menu-profile-avatar">
+                @if (user()?.picture && !avatarBroken()) {
+                  <img
+                    class="avatar-img"
+                    [src]="user()!.picture"
+                    [alt]="user()?.name ?? 'Avatar de usuario'"
+                    (error)="onAvatarError()"
+                  />
+                } @else {
+                  {{ initials(user()?.name) }}
+                }
+              </div>
+              <div class="menu-profile-info">
+                <strong>{{ user()?.name ?? "Usuario" }}</strong>
+                <span>{{ user()?.email ?? "" }}</span>
+              </div>
+            </div>
             <button class="user-menu-item" type="button" (click)="settings()">
               <svg
                 width="16"
@@ -414,6 +441,7 @@
               id="tx-date"
               class="tx-input"
               type="date"
+              [max]="todayLocalDate()"
               [(ngModel)]="date"
               name="date"
             />

@@ -49,6 +49,61 @@ export class ExpensesService {
     return role === "ADMIN";
   }
 
+  private isFutureDate(date: Date): boolean {
+    const now = new Date();
+    const endOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999
+    );
+    return date.getTime() > endOfToday.getTime();
+  }
+
+  private async assertExpenseDoesNotExceedIncome(
+    userId: string,
+    date: Date,
+    amount: number,
+    excludeId?: string
+  ) {
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+    const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+
+    const [expenses, incomes] = await Promise.all([
+      prisma.expense.findMany({
+        where: {
+          userId,
+          type: "EXPENSE",
+          date: { gte: monthStart, lt: monthEnd },
+          ...(excludeId ? { NOT: { id: excludeId } } : {}),
+        },
+        select: { amount: true },
+      }),
+      prisma.expense.findMany({
+        where: {
+          userId,
+          type: "INCOME",
+          date: { gte: monthStart, lt: monthEnd },
+        },
+        select: { amount: true },
+      }),
+    ]);
+
+    const totalExpense =
+      expenses.reduce((sum, e) => sum + Number(e.amount), 0) + amount;
+    const totalIncome = incomes.reduce((sum, i) => sum + Number(i.amount), 0);
+
+    if (totalExpense > totalIncome) {
+      throw new HttpError(
+        400,
+        "Los gastos de este mes no pueden exceder los ingresos registrados."
+      );
+    }
+  }
+
   async summary(actor: { userId: string; role: Role }) {
     const where = this.isAdmin(actor.role) ? {} : { userId: actor.userId };
 
@@ -207,13 +262,27 @@ export class ExpensesService {
   }
 
   async create(actor: { userId: string }, input: CreateExpenseInput) {
+    const date = input.date ?? new Date();
+
+    if (this.isFutureDate(date)) {
+      throw new HttpError(400, "La fecha no puede ser en el futuro.");
+    }
+
+    if (input.type === "EXPENSE") {
+      await this.assertExpenseDoesNotExceedIncome(
+        actor.userId,
+        date,
+        Number(input.amount)
+      );
+    }
+
     return prisma.expense.create({
       data: {
         description: input.description,
         amount: input.amount,
         type: input.type,
         category: input.category,
-        date: input.date,
+        date,
         userId: actor.userId,
       },
       select: expenseSelect,
@@ -226,6 +295,25 @@ export class ExpensesService {
     input: UpdateExpenseInput
   ) {
     const existing = await this.getById(actor, id);
+
+    const nextType = input.type ?? existing.type;
+    const nextAmount = input.amount !== undefined ? Number(input.amount) : Number(existing.amount);
+    const nextDate = input.date ?? new Date(existing.date);
+
+    if (!this.isAdmin(actor.role)) {
+      if (this.isFutureDate(nextDate)) {
+        throw new HttpError(400, "La fecha no puede ser en el futuro.");
+      }
+
+      if (nextType === "EXPENSE") {
+        await this.assertExpenseDoesNotExceedIncome(
+          actor.userId,
+          nextDate,
+          nextAmount,
+          existing.id
+        );
+      }
+    }
 
     return prisma.expense.update({
       where: { id: existing.id },

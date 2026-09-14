@@ -46,6 +46,20 @@ const STRENGTH_META = [
   { label: "Muy fuerte", bar: "#34d399", text: "#6ee7b7" },
 ] as const;
 
+type AuthMode = "login" | "register";
+
+function scorePassword(value: string): number {
+  if (!value) {
+    return 0;
+  }
+  let score = 0;
+  if (value.length >= 8) score++;
+  if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
+  if (/\d/.test(value)) score++;
+  if (/[^a-zA-Z0-9]/.test(value)) score++;
+  return score;
+}
+
 @Component({
   selector: "app-login",
   imports: [ReactiveFormsModule, MouseSpotlight, MagneticButton],
@@ -60,28 +74,37 @@ export class Login implements AfterViewInit {
 
   @ViewChild("googleBtn", { static: false }) googleBtnRef!: ElementRef;
 
+  mode: AuthMode = "login";
+
   readonly form = this.fb.group({
     email: ["", [Validators.required, Validators.email]],
     password: ["", [Validators.required]],
   });
 
+  readonly registerForm = this.fb.group({
+    name: [
+      "",
+      [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
+    ],
+    email: ["", [Validators.required, Validators.email]],
+    password: ["", [Validators.required, Validators.minLength(8)]],
+    confirmPassword: ["", [Validators.required]],
+  });
+
   errorMessage = "";
   pending = false;
   showPassword = false;
+  showRegisterPassword = false;
+  showRegisterConfirm = false;
   googlePending = false;
 
-  readonly passwordScore = computed(() => {
-    const value = this.password.value ?? "";
-    if (!value) {
-      return 0;
-    }
-    let score = 0;
-    if (value.length >= 8) score++;
-    if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
-    if (/\d/.test(value)) score++;
-    if (/[^a-zA-Z0-9]/.test(value)) score++;
-    return score;
-  });
+  readonly passwordScore = computed(() =>
+    scorePassword(this.password.value ?? "")
+  );
+
+  readonly registerPasswordScore = computed(() =>
+    scorePassword(this.registerPassword.value ?? "")
+  );
 
   readonly strengthMeta = computed(() =>
     this.passwordScore() > 0
@@ -89,7 +112,20 @@ export class Login implements AfterViewInit {
       : null
   );
 
+  readonly registerStrengthMeta = computed(() =>
+    this.registerPasswordScore() > 0
+      ? STRENGTH_META[this.registerPasswordScore() - 1]
+      : null
+  );
+
   readonly strengthSegments = [1, 2, 3, 4];
+
+  readonly registerHasMismatch = computed(
+    () =>
+      this.registerConfirm.dirty &&
+      (this.registerConfirm.value ?? "").length > 0 &&
+      this.registerConfirm.value !== this.registerPassword.value
+  );
 
   get email() {
     return this.form.controls.email;
@@ -99,8 +135,34 @@ export class Login implements AfterViewInit {
     return this.form.controls.password;
   }
 
+  get registerName() {
+    return this.registerForm.controls.name;
+  }
+
+  get registerEmail() {
+    return this.registerForm.controls.email;
+  }
+
+  get registerPassword() {
+    return this.registerForm.controls.password;
+  }
+
+  get registerConfirm() {
+    return this.registerForm.controls.confirmPassword;
+  }
+
   ngAfterViewInit(): void {
     this.initGoogleSignIn();
+  }
+
+  switchMode(mode: AuthMode): void {
+    if (this.mode === mode) {
+      return;
+    }
+    this.mode = mode;
+    this.errorMessage = "";
+    this.form.reset();
+    this.registerForm.reset();
   }
 
   submit(): void {
@@ -126,6 +188,35 @@ export class Login implements AfterViewInit {
               "Credenciales incorrectas.";
       },
     });
+  }
+
+  submitRegister(): void {
+    this.registerForm.markAllAsTouched();
+    if (this.registerForm.invalid || this.registerHasMismatch()) {
+      return;
+    }
+
+    this.errorMessage = "";
+    this.pending = true;
+
+    this.auth
+      .register(
+        (this.registerName.value ?? "").trim(),
+        (this.registerEmail.value ?? "").trim(),
+        this.registerPassword.value ?? "",
+        this.registerConfirm.value ?? ""
+      )
+      .subscribe({
+        next: () => void this.router.navigate(["/dashboard"]),
+        error: (err: HttpErrorResponse) => {
+          this.pending = false;
+          this.errorMessage =
+            err.status === 0
+              ? "No se pudo conectar con el servidor. Intente de nuevo."
+              : (err.error?.error as string | undefined) ??
+                "No se pudo crear la cuenta.";
+        },
+      });
   }
 
   private initGoogleSignIn(): void {

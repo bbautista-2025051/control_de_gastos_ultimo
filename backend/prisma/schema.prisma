@@ -21,6 +21,7 @@ model User {
   id           String          @id @default(cuid())
   name         String
   email        String          @unique
+  picture      String?
   passwordHash String?
   googleId     String?         @unique
   role         Role            @default(USER)

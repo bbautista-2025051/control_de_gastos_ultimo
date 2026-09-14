@@ -1,5 +1,6 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
+import { map } from "rxjs";
 
 export interface CategorySum {
   category: string;
@@ -88,7 +89,12 @@ export class ExpensesService {
     if (params.category !== undefined) {
       query["category"] = params.category;
     }
-    return this.http.get<ExpenseListResponse>("/api/expenses", { params: query });
+    return this.http.get<ExpenseListResponse>("/api/expenses", { params: query }).pipe(
+      map((res) => ({
+        ...res,
+        items: res.items.map((item) => ({ ...item, amount: Number(item.amount) })),
+      }))
+    );
   }
 
   create(input: {

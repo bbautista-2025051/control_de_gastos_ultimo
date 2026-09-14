@@ -9,6 +9,7 @@ import type {
   ChangePasswordInput,
   GoogleLoginInput,
   LoginInput,
+  RegisterInput,
   UpdateProfileInput,
 } from "../auth.schemas";
 
@@ -22,6 +23,7 @@ const publicUserSelect = {
   id: true,
   name: true,
   email: true,
+  picture: true,
   role: true,
   createdAt: true,
 } as const;
@@ -30,6 +32,7 @@ type PublicUser = {
   id: string;
   name: string;
   email: string;
+  picture: string | null;
   role: "ADMIN" | "USER";
   createdAt: Date;
   passwordHash: string | null;
@@ -45,6 +48,37 @@ function toSafeUser(
 }
 
 export class AuthService {
+  async register(input: RegisterInput) {
+    const existing = await prisma.user.findUnique({
+      where: { email: input.email },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new HttpError(409, "Ese correo electrónico ya está registrado.");
+    }
+
+    const passwordHash = await bcrypt.hash(input.password, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        name: input.name,
+        email: input.email,
+        passwordHash,
+      },
+      select: { ...publicUserSelect, isActive: true, passwordHash: true },
+    });
+
+    const payload: AuthPayload = { userId: user.id, role: user.role };
+    const token = jwt.sign(payload, env.jwtSecret, {
+      expiresIn: TOKEN_EXPIRATION,
+    });
+
+    const safeUser = toSafeUser(user);
+
+    return { token, user: safeUser };
+  }
+
   async login(input: LoginInput) {
     const user = await prisma.user.findUnique({
       where: { email: input.email },
@@ -93,6 +127,7 @@ export class AuthService {
     const googleId = payload.sub as string;
     const email = payload.email as string;
     const name = (payload.name as string) ?? email;
+    const picture = (payload.picture as string) ?? null;
 
     if (!googleId || !email) {
       throw new HttpError(401, "Credencial de Google inválida.");
@@ -103,7 +138,17 @@ export class AuthService {
       select: { ...publicUserSelect, isActive: true, passwordHash: true },
     });
 
-    if (!user) {
+    if (user) {
+      // Refresca la foto del perfil en cada inicio de sesión con Google,
+      // para que regrese la foto aunque el usuario ya exista.
+      if (picture && user.picture !== picture) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { picture },
+          select: { ...publicUserSelect, isActive: true, passwordHash: true },
+        });
+      }
+    } else {
       user = await prisma.user.findUnique({
         where: { email },
         select: { ...publicUserSelect, isActive: true, googleId: true, passwordHash: true },
@@ -112,7 +157,7 @@ export class AuthService {
       if (user) {
         user = await prisma.user.update({
           where: { id: user.id },
-          data: { googleId },
+          data: { googleId, picture: picture ?? user.picture },
           select: { ...publicUserSelect, isActive: true, passwordHash: true },
         });
       } else {
@@ -121,6 +166,7 @@ export class AuthService {
             name,
             email,
             googleId,
+            picture,
           },
           select: { ...publicUserSelect, isActive: true, passwordHash: true },
         });

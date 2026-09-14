@@ -32,6 +32,7 @@ export class Ajustes implements OnInit {
   private readonly toast = inject(ToastService);
 
   readonly user = this.auth.user;
+  readonly avatarBroken = signal(false);
   readonly canChangePassword = computed(() => this.user()?.hasPassword ?? true);
   readonly menuOpen = signal(false);
   readonly section = signal<SectionKey>("perfil");
@@ -244,6 +245,10 @@ export class Ajustes implements OnInit {
 
   toggleMenu(): void {
     this.menuOpen.update((open) => !open);
+  }
+
+  onAvatarError(): void {
+    this.avatarBroken.set(true);
   }
 
   settings(): void {

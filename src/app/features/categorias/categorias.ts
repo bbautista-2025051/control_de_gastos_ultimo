@@ -11,6 +11,8 @@ const money = (value: number): string =>
   new Intl.NumberFormat("es-GT", {
     style: "currency",
     currency: "GTQ",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 
 export interface ExpenseCategory {
@@ -64,6 +66,7 @@ export class Categorias implements OnInit {
   readonly auth = inject(AuthService);
 
   readonly user = this.auth.user;
+  readonly avatarBroken = signal(false);
   readonly summary = signal<DashboardSummary | null>(null);
   readonly incomeTransactions = signal<ExpenseItem[]>([]);
   loadError = false;
@@ -164,6 +167,10 @@ export class Categorias implements OnInit {
 
   toggleMenu(): void {
     this.menuOpen.update((open) => !open);
+  }
+
+  onAvatarError(): void {
+    this.avatarBroken.set(true);
   }
 
   settings(): void {

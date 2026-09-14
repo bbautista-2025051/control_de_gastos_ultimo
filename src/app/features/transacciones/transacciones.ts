@@ -5,6 +5,7 @@ import {
   inject,
   signal,
 } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { FormsModule } from "@angular/forms";
 import { RouterLink, RouterLinkActive, Router } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
@@ -17,13 +18,15 @@ import {
 import {
   formatDisplayDate,
   localDateToIso,
-  todayLocalDate,
+  todayLocalDate as getTodayLocalDate,
 } from "../../core/date.utils";
 
 const money = (value: number): string =>
   new Intl.NumberFormat("es-GT", {
     style: "currency",
     currency: "GTQ",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 
 const amountOnly = (value: number): string =>
@@ -95,6 +98,7 @@ export class Transacciones implements OnInit {
   readonly auth = inject(AuthService);
 
   readonly user = this.auth.user;
+  readonly avatarBroken = signal(false);
   readonly summary = signal<DashboardSummary | null>(null);
   readonly transactions = signal<ExpenseItem[]>([]);
   loadError = false;
@@ -108,7 +112,7 @@ export class Transacciones implements OnInit {
   amount = "";
   category = "Alimentación";
   description = "";
-  date = todayLocalDate();
+  date = getTodayLocalDate();
   submitting = false;
 
   readonly editing = signal<ExpenseItem | null>(null);
@@ -281,6 +285,14 @@ export class Transacciones implements OnInit {
     return money(value);
   }
 
+  formatAmount(value: number): string {
+    return amountOnly(value);
+  }
+
+  todayLocalDate(): string {
+    return getTodayLocalDate();
+  }
+
   categoryIcon(category: string): string {
     return CATEGORY_ICONS[category] ?? "box";
   }
@@ -320,6 +332,10 @@ export class Transacciones implements OnInit {
     this.menuOpen.update((open) => !open);
   }
 
+  onAvatarError(): void {
+    this.avatarBroken.set(true);
+  }
+
   settings(): void {
     this.menuOpen.set(false);
     void this.router.navigate(["/ajustes"]);
@@ -342,7 +358,7 @@ export class Transacciones implements OnInit {
   }
 
   submit(): void {
-    const amount = Number(this.amount);
+    const amount = Math.round(Number(this.amount) * 100) / 100;
     if (!amount || amount <= 0) {
       this.toast.error("Ingrese un monto válido para la transacción.", "Monto inválido");
       return;
@@ -369,8 +385,13 @@ export class Transacciones implements OnInit {
           this.filter.set("ALL");
           this.load();
         },
-        error: () => {
-          this.toast.error("No se pudo registrar la transacción. Intente de nuevo.", "Error al registrar");
+        error: (err: HttpErrorResponse) => {
+          const message =
+            err.status === 0
+              ? "No se pudo conectar con el servidor. Intente de nuevo."
+              : (err.error?.error as string | undefined) ??
+                "No se pudo registrar la transacción. Intente de nuevo.";
+          this.toast.error(message, "Error al registrar");
           this.submitting = false;
         },
       });
@@ -382,7 +403,7 @@ export class Transacciones implements OnInit {
 
   openEdit(item: ExpenseItem): void {
     this.editTipo = item.type;
-    this.editAmount = String(item.amount);
+    this.editAmount = item.amount.toFixed(2);
     this.editCategory = item.category;
     this.editDescription = item.description;
     this.editDate = item.date.slice(0, 10);
@@ -398,7 +419,7 @@ export class Transacciones implements OnInit {
     if (!item) {
       return;
     }
-    const amount = Number(this.editAmount);
+    const amount = Math.round(Number(this.editAmount) * 100) / 100;
     if (!amount || amount <= 0) {
       this.toast.error("Ingrese un monto válido para la transacción.", "Monto inválido");
       return;
@@ -422,8 +443,13 @@ export class Transacciones implements OnInit {
           this.editing.set(null);
           this.load();
         },
-        error: () => {
-          this.toast.error("No se pudo actualizar la transacción. Intente de nuevo.", "Error al actualizar");
+        error: (err: HttpErrorResponse) => {
+          const message =
+            err.status === 0
+              ? "No se pudo conectar con el servidor. Intente de nuevo."
+              : (err.error?.error as string | undefined) ??
+                "No se pudo actualizar la transacción. Intente de nuevo.";
+          this.toast.error(message, "Error al actualizar");
           this.savingEdit = false;
         },
       });

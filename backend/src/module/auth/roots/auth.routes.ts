@@ -3,6 +3,7 @@ import { AuthController } from "../controller/auth.controller";
 import { AuthService } from "../services/auth.service";
 import {
   loginSchema,
+  registerSchema,
   googleLoginSchema,
   updateProfileSchema,
   changePasswordSchema,
@@ -16,6 +17,7 @@ export function authRoutes(): Router {
   const authController = new AuthController(authService);
 
   router.post("/login", validate(loginSchema), authController.login);
+  router.post("/register", validate(registerSchema), authController.register);
   router.post("/google", validate(googleLoginSchema), authController.googleLogin);
   router.get("/me", requireAuth, authController.me);
   router.patch("/me", requireAuth, validate(updateProfileSchema), authController.updateProfile);

@@ -32,6 +32,9 @@ const categorySets: Record<"INCOME" | "EXPENSE", readonly string[]> = {
   EXPENSE: EXPENSE_CATEGORIES,
 };
 
+const dateSchema = z.coerce.date({ error: "Fecha inválida." });
+const optionalDateSchema = dateSchema.optional();
+
 export const createExpenseSchema = z.object({
   description: z
     .string({ error: "Ingresa una descripción." })
@@ -46,7 +49,7 @@ export const createExpenseSchema = z.object({
   category: z.enum(ALL_CATEGORIES, {
     error: `Categoría inválida. Válidas: ${ALL_CATEGORIES.join(", ")}.`,
   }),
-  date: z.coerce.date({ error: "Fecha inválida." }).optional(),
+  date: optionalDateSchema,
 }).superRefine((data, ctx) => {
   const valid = categorySets[data.type];
   if (valid && !valid.includes(data.category)) {
@@ -73,7 +76,7 @@ export const updateExpenseSchema = z
     category: z.enum(ALL_CATEGORIES, {
       error: `Categoría inválida. Válidas: ${ALL_CATEGORIES.join(", ")}.`,
     }),
-    date: z.coerce.date({ error: "Fecha inválida." }),
+    date: dateSchema,
   })
   .partial()
   .superRefine((data, ctx) => {
@@ -88,6 +91,20 @@ export const updateExpenseSchema = z
       }
     }
   });
+
+function isFutureDate(date: Date): boolean {
+  const now = new Date();
+  const endOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999
+  );
+  return date.getTime() > endOfToday.getTime();
+}
 
 export const listExpensesSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
