@@ -14,6 +14,28 @@
 
   --muted: #94a3b8;
   --faint: #5b6b83;
+
+  /* Tokens de tema (oscuro por defecto) */
+  --bg: #0a0e1a;
+  --bg-nav: rgba(10, 14, 26, 0.92);
+  --card: #121729;
+  --card-solid: #151b2e;
+  --panel: #101528;
+  --panel-raised: #1c2338;
+  --field: #0d1220;
+  --border: #232a45;
+  --border-strong: #2f3958;
+  --border-soft: #1f2740;
+  --text: #f3f5f9;
+  --text-strong: #ffffff;
+  --text-soft: #c3ccdd;
+  --text-muted: #8891a7;
+  --text-dim: #5c6480;
+  --text-hover: #dbe4f4;
+}
+
+html[data-theme="light"] ::selection {
+  color: #064e3b;
 }
 
 * {

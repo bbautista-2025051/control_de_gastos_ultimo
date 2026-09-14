@@ -1,0 +1,325 @@
+<div class="cat-shell">
+  <div class="bg-light bg-light-green" aria-hidden="true"></div>
+  <div class="bg-light bg-light-purple" aria-hidden="true"></div>
+
+  <header class="cat-nav">
+    <div class="cat-nav-inner">
+      <div class="brand">
+        <img
+          src="logo-gestion.png"
+          alt="Logo de DATANEX"
+          class="brand-logo"
+        />
+      </div>
+
+      <nav class="nav-tabs" aria-label="Navegación principal">
+        <a class="nav-tab" routerLink="/dashboard" routerLinkActive="nav-tab-active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
+        <a class="nav-tab" routerLink="/transacciones" routerLinkActive="nav-tab-active">Transacciones</a>
+        <a class="nav-tab nav-tab-active" routerLink="/categorias" routerLinkActive="nav-tab-active" aria-current="page">Categorías</a>
+        <a class="nav-tab" routerLink="/reportes" routerLinkActive="nav-tab-active">Reportes</a>
+      </nav>
+
+      <div class="avatar-wrap">
+        <button class="avatar" type="button" (click)="toggleMenu()" title="Menú de usuario">
+          @if (user()?.picture && !avatarBroken()) {
+            <img
+              class="avatar-img"
+              [src]="user()!.picture"
+              [alt]="user()?.name ?? 'Avatar de usuario'"
+              (error)="onAvatarError()"
+            />
+          } @else {
+            {{ initials(user()?.name) }}
+          }
+        </button>
+        @if (menuOpen()) {
+          <div class="menu-backdrop" (click)="menuOpen.set(false)"></div>
+          <div class="user-menu">
+            <div class="menu-profile">
+              <div class="menu-profile-avatar">
+                @if (user()?.picture && !avatarBroken()) {
+                  <img
+                    class="avatar-img"
+                    [src]="user()!.picture"
+                    [alt]="user()?.name ?? 'Avatar de usuario'"
+                    (error)="onAvatarError()"
+                  />
+                } @else {
+                  {{ initials(user()?.name) }}
+                }
+              </div>
+              <div class="menu-profile-info">
+                <strong>{{ user()?.name ?? "Usuario" }}</strong>
+                <span>{{ user()?.email ?? "" }}</span>
+              </div>
+            </div>
+            <button class="user-menu-item" type="button" (click)="settings()">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a6.759 6.759 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+              Ajustes de la cuenta
+            </button>
+            <button class="user-menu-item user-menu-item-danger" type="button" (click)="logout()">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-9a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 4.5 21h9a2.25 2.25 0 0 0 2.25-2.25V15m0 0 3-3m0 0-3-3m3 3H9" />
+              </svg>
+              Cerrar sesión
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="cat-main">
+    @if (loadError) {
+      <p class="cat-error">No se pudo cargar su información.</p>
+    } @else {
+      <section class="page-head">
+        <h1 class="page-title">Categorías</h1>
+        <p class="page-sub">
+          Categorías predefinidas del sistema para clasificar sus ingresos y egresos
+        </p>
+      </section>
+
+      <div class="notice">
+        <svg
+          class="notice-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+        <p>
+          Estas categorías vienen definidas de fábrica y no pueden crearse,
+          editarse ni eliminarse.
+        </p>
+      </div>
+
+      <div class="pill-tabs">
+        <button
+          type="button"
+          class="pill-tab"
+          [class.pill-tab-active]="view() === 'GASTOS'"
+          (click)="setView('GASTOS')"
+        >
+          Gastos
+        </button>
+        <button
+          type="button"
+          class="pill-tab"
+          [class.pill-tab-active]="view() === 'INGRESOS'"
+          (click)="setView('INGRESOS')"
+        >
+          Ingresos
+        </button>
+      </div>
+
+      @if (view() === 'GASTOS') {
+        <section class="cat-stats">
+          <article class="kpi-card">
+            <p class="kpi-label">Ingresos del mes</p>
+            <p class="kpi-value kpi-value-green">{{ money(totalBudget()) }}</p>
+          </article>
+          <article class="kpi-card">
+            <p class="kpi-label">Gastos del mes</p>
+            <p class="kpi-value kpi-value-red">{{ money(spentMonth()) }}</p>
+          </article>
+          <article class="kpi-card">
+            <p class="kpi-label">Disponible</p>
+            <p class="kpi-value kpi-value-green">{{ money(availableMonth()) }}</p>
+          </article>
+        </section>
+
+        @if (exceedsIncome()) {
+          <div class="set-error-box cat-over-banner" role="alert">
+            Has superado tus ingresos del mes. Reduce tus gastos para volver a
+            estar dentro del presupuesto.
+          </div>
+        }
+
+        <section class="section-head">
+          <h2 class="section-title">Categorías de gasto</h2>
+          <span class="section-badge">{{ expenseCategories.length }} categorías</span>
+        </section>
+
+        <section class="cat-grid">
+          @for (cat of expenseCards(); track cat.name) {
+            <article class="cat-card" [class.cat-card-over]="cat.over">
+              <span class="cat-badge">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                Calculada
+              </span>
+              <span class="cat-ic" [style.background]="cat.color + '1f'" [style.color]="cat.color">
+                @switch (cat.icon) {
+                  @case ("cutlery") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+                      <path d="M7 2v20" />
+                      <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+                    </svg>
+                  }
+                  @case ("car") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                      <circle cx="7" cy="17" r="2" />
+                      <path d="M9 17h6" />
+                      <circle cx="17" cy="17" r="2" />
+                    </svg>
+                  }
+                  @case ("home") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                      <path d="M9 22V12h6v10" />
+                    </svg>
+                  }
+                  @case ("bolt") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                  }
+                  @case ("heart") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                    </svg>
+                  }
+                  @case ("book") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                    </svg>
+                  }
+                  @case ("film") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="2" y="2" width="20" height="20" rx="2.18" />
+                      <path d="M7 2v20" />
+                      <path d="M17 2v20" />
+                      <path d="M2 12h20" />
+                      <path d="M2 7h5" />
+                      <path d="M2 17h5" />
+                      <path d="M17 17h5" />
+                      <path d="M17 7h5" />
+                    </svg>
+                  }
+                  @case ("shirt") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23Z" />
+                    </svg>
+                  }
+                  @case ("dots") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <circle cx="12" cy="5" r="2" />
+                      <circle cx="12" cy="12" r="2" />
+                      <circle cx="12" cy="19" r="2" />
+                    </svg>
+                  }
+                }
+              </span>
+              <p class="cat-name">{{ cat.name }}</p>
+              <p class="cat-amounts">
+                <span class="cat-spent">{{ money(cat.spent) }}</span>
+                <span class="cat-of">de {{ money(cat.budget) }}</span>
+              </p>
+              <div class="bar">
+                <span
+                  class="bar-fill"
+                  [style.background]="cat.color"
+                  [style.width.%]="cat.percent"
+                ></span>
+              </div>
+              <div class="cat-foot">
+                <span class="cat-used">{{ cat.percent }}% usado</span>
+                <span class="cat-avail">{{ money(cat.available) }} disponible</span>
+              </div>
+            </article>
+          }
+        </section>
+      } @else {
+        <section class="section-head">
+          <h2 class="section-title">Categorías de ingreso</h2>
+          <span class="section-badge">3 categorías</span>
+        </section>
+
+        <section class="income-grid">
+          @for (cat of incomeCards(); track cat.name) {
+            <article class="cat-card income-card">
+              <span class="cat-ic" [style.background]="cat.color + '1f'" [style.color]="cat.color">
+                @switch (cat.icon) {
+                  @case ("briefcase") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="2" y="7" width="20" height="14" rx="2" />
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                  }
+                  @case ("laptop") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="4" y="4" width="16" height="12" rx="2" />
+                      <path d="M2 20h20" />
+                    </svg>
+                  }
+                  @case ("gift") {
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="3" y="8" width="18" height="4" rx="1" />
+                      <path d="M12 8v13" />
+                      <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
+                      <path d="M12 8c-1.5 0-6-3-6-3s.5-4 4-3 2 6 2 6Z" />
+                      <path d="M12 8c1.5 0 6-3 6-3s-.5-4-4-3-2 6-2 6Z" />
+                    </svg>
+                  }
+                }
+              </span>
+              <p class="cat-name">{{ cat.name }}</p>
+              <p class="cat-spent cat-received">{{ money(cat.received) }}</p>
+              <p class="cat-received-label">Recibido este mes</p>
+            </article>
+          }
+        </section>
+      }
+    }
+  </main>
+
+  <footer class="cat-footer">
+    DATANEX · Control de Gastos — Uso personal y familiar
+  </footer>
+</div>

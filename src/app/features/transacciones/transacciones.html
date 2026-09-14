@@ -15,17 +15,44 @@
       <nav class="nav-tabs" aria-label="Navegación principal">
         <a class="nav-tab" routerLink="/dashboard" routerLinkActive="nav-tab-active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
         <a class="nav-tab nav-tab-active" routerLink="/transacciones" routerLinkActive="nav-tab-active">Transacciones</a>
-        <a class="nav-tab">Categorías</a>
-        <a class="nav-tab">Reportes</a>
+        <a class="nav-tab" routerLink="/categorias" routerLinkActive="nav-tab-active">Categorías</a>
+        <a class="nav-tab" routerLink="/reportes" routerLinkActive="nav-tab-active">Reportes</a>
       </nav>
 
       <div class="avatar-wrap">
         <button class="avatar" type="button" (click)="toggleMenu()" title="Menú de usuario">
-          {{ initials(user()?.name) }}
+          @if (user()?.picture && !avatarBroken()) {
+            <img
+              class="avatar-img"
+              [src]="user()!.picture"
+              [alt]="user()?.name ?? 'Avatar de usuario'"
+              (error)="onAvatarError()"
+            />
+          } @else {
+            {{ initials(user()?.name) }}
+          }
         </button>
         @if (menuOpen()) {
           <div class="menu-backdrop" (click)="menuOpen.set(false)"></div>
           <div class="user-menu">
+            <div class="menu-profile">
+              <div class="menu-profile-avatar">
+                @if (user()?.picture && !avatarBroken()) {
+                  <img
+                    class="avatar-img"
+                    [src]="user()!.picture"
+                    [alt]="user()?.name ?? 'Avatar de usuario'"
+                    (error)="onAvatarError()"
+                  />
+                } @else {
+                  {{ initials(user()?.name) }}
+                }
+              </div>
+              <div class="menu-profile-info">
+                <strong>{{ user()?.name ?? "Usuario" }}</strong>
+                <span>{{ user()?.email ?? "" }}</span>
+              </div>
+            </div>
             <button class="user-menu-item" type="button" (click)="settings()">
               <svg
                 width="16"
@@ -248,7 +275,8 @@
                 class="search-input"
                 type="text"
                 placeholder="Buscar por descripción o categoría…"
-                [(ngModel)]="search"
+                [ngModel]="search()"
+                (ngModelChange)="search.set($event)"
                 name="search"
               />
             </div>
@@ -353,7 +381,7 @@
                         class="tx-amt"
                         [class]="item.type === 'INCOME' ? 'amt-pos' : 'amt-neg'"
                       >
-                        {{ item.type === "INCOME" ? "+" : "−" }} {{ money(item.amount) }}
+                        Q{{ formatAmount(item.amount) }}
                       </p>
                       <div class="tx-actions">
                         <button class="tx-action-btn tx-action-edit" type="button" (click)="openEdit(item)" title="Editar transacción">
@@ -438,7 +466,7 @@
                     [(ngModel)]="category"
                     name="category"
                   >
-                    @for (option of expenseCategories; track option) {
+                    @for (option of selectedCategories(); track option) {
                       <option [value]="option">{{ option }}</option>
                     }
                   </select>
@@ -477,6 +505,7 @@
                   id="tx-date"
                   class="tx-input"
                   type="date"
+                  [max]="todayLocalDate()"
                   [(ngModel)]="date"
                   name="date"
                 />
@@ -524,7 +553,7 @@
             type="button"
             class="toggle-btn"
             [class.toggle-on]="editTipo === 'INCOME'"
-            (click)="editTipo = 'INCOME'"
+            (click)="setEditTipo('INCOME')"
           >
             Ingreso
           </button>
@@ -532,7 +561,7 @@
             type="button"
             class="toggle-btn"
             [class.toggle-egreso]="editTipo === 'EXPENSE'"
-            (click)="editTipo = 'EXPENSE'"
+            (click)="setEditTipo('EXPENSE')"
           >
             Egreso
           </button>
@@ -564,7 +593,7 @@
               [(ngModel)]="editCategory"
               name="editCategory"
             >
-              @for (option of expenseCategories; track option) {
+              @for (option of editTipo === 'INCOME' ? incomeCategories : expenseCategories; track option) {
                 <option [value]="option">{{ option }}</option>
               }
             </select>
@@ -592,6 +621,7 @@
             id="edit-date"
             class="tx-input"
             type="date"
+            [max]="todayLocalDate()"
             [(ngModel)]="editDate"
             name="editDate"
           />

@@ -5,8 +5,9 @@ import {
   inject,
   signal,
 } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { FormsModule } from "@angular/forms";
-import { RouterLink, RouterLinkActive } from "@angular/router";
+import { RouterLink, RouterLinkActive, Router } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
 import { ToastService } from "../../core/toast.service";
 import {
@@ -17,14 +18,19 @@ import {
 import {
   formatDisplayDate,
   localDateToIso,
-  todayLocalDate,
+  todayLocalDate as getTodayLocalDate,
 } from "../../core/date.utils";
 
 const money = (value: number): string =>
   new Intl.NumberFormat("es-GT", {
     style: "currency",
     currency: "GTQ",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
+
+const amountOnly = (value: number): string =>
+  value.toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const CATEGORY_TONES: Record<string, string> = {
   "Alimentación": "emerald",
@@ -88,23 +94,25 @@ type Filter = "ALL" | "INCOME" | "EXPENSE";
 export class Transacciones implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly expenses = inject(ExpensesService);
+  private readonly router = inject(Router);
   readonly auth = inject(AuthService);
 
   readonly user = this.auth.user;
+  readonly avatarBroken = signal(false);
   readonly summary = signal<DashboardSummary | null>(null);
   readonly transactions = signal<ExpenseItem[]>([]);
   loadError = false;
 
   readonly menuOpen = signal(false);
   readonly filter = signal<Filter>("ALL");
-  search = "";
+  readonly search = signal("");
   loading = false;
 
   readonly tipo = signal<"INCOME" | "EXPENSE">("EXPENSE");
   amount = "";
   category = "Alimentación";
   description = "";
-  date = todayLocalDate();
+  date = getTodayLocalDate();
   submitting = false;
 
   readonly editing = signal<ExpenseItem | null>(null);
@@ -118,6 +126,7 @@ export class Transacciones implements OnInit {
   readonly deleting = signal<ExpenseItem | null>(null);
   deletingTransaction = false;
 
+  readonly incomeCategories = ["Salario", "Trabajo independiente", "Otros ingresos"];
   readonly expenseCategories = [
     "Alimentación",
     "Transporte",
@@ -127,7 +136,6 @@ export class Transacciones implements OnInit {
     "Ocio",
     "Educación",
     "Ropa",
-    "Salario",
     "Otros",
   ];
 
@@ -214,12 +222,14 @@ export class Transacciones implements OnInit {
   });
 
   readonly filteredTransactions = computed<ExpenseItem[]>(() => {
-    const query = this.search.trim().toLowerCase();
+    const query = this.search().trim().toLowerCase();
+    if (!query) {
+      return this.transactions();
+    }
     return this.transactions().filter((item) => {
-      if (query && !item.description.toLowerCase().includes(query)) {
-        return false;
-      }
-      return true;
+      const haystack =
+        `${item.description} ${item.category}`.toLowerCase();
+      return haystack.includes(query);
     });
   });
 
@@ -227,6 +237,10 @@ export class Transacciones implements OnInit {
     const data = this.summary();
     return (data?.incomeMonth ?? 0) + (data?.expenseMonth ?? 0);
   });
+
+  readonly selectedCategories = computed<string[]>(() =>
+    this.tipo() === "INCOME" ? this.incomeCategories : this.expenseCategories
+  );
 
   ngOnInit(): void {
     this.auth.me().subscribe({
@@ -271,6 +285,14 @@ export class Transacciones implements OnInit {
     return money(value);
   }
 
+  formatAmount(value: number): string {
+    return amountOnly(value);
+  }
+
+  todayLocalDate(): string {
+    return getTodayLocalDate();
+  }
+
   categoryIcon(category: string): string {
     return CATEGORY_ICONS[category] ?? "box";
   }
@@ -310,17 +332,33 @@ export class Transacciones implements OnInit {
     this.menuOpen.update((open) => !open);
   }
 
+  onAvatarError(): void {
+    this.avatarBroken.set(true);
+  }
+
   settings(): void {
     this.menuOpen.set(false);
-    this.toast.info("Los ajustes de la cuenta estarán disponibles próximamente.", "Próximamente");
+    void this.router.navigate(["/ajustes"]);
   }
 
   setTipo(value: "INCOME" | "EXPENSE"): void {
     this.tipo.set(value);
+    const list = value === "INCOME" ? this.incomeCategories : this.expenseCategories;
+    if (!list.includes(this.category)) {
+      this.category = list[0];
+    }
+  }
+
+  setEditTipo(value: "INCOME" | "EXPENSE"): void {
+    this.editTipo = value;
+    const list = value === "INCOME" ? this.incomeCategories : this.expenseCategories;
+    if (!list.includes(this.editCategory)) {
+      this.editCategory = list[0];
+    }
   }
 
   submit(): void {
-    const amount = Number(this.amount);
+    const amount = Math.round(Number(this.amount) * 100) / 100;
     if (!amount || amount <= 0) {
       this.toast.error("Ingrese un monto válido para la transacción.", "Monto inválido");
       return;
@@ -347,8 +385,13 @@ export class Transacciones implements OnInit {
           this.filter.set("ALL");
           this.load();
         },
-        error: () => {
-          this.toast.error("No se pudo registrar la transacción. Intente de nuevo.", "Error al registrar");
+        error: (err: HttpErrorResponse) => {
+          const message =
+            err.status === 0
+              ? "No se pudo conectar con el servidor. Intente de nuevo."
+              : (err.error?.error as string | undefined) ??
+                "No se pudo registrar la transacción. Intente de nuevo.";
+          this.toast.error(message, "Error al registrar");
           this.submitting = false;
         },
       });
@@ -360,7 +403,7 @@ export class Transacciones implements OnInit {
 
   openEdit(item: ExpenseItem): void {
     this.editTipo = item.type;
-    this.editAmount = String(item.amount);
+    this.editAmount = item.amount.toFixed(2);
     this.editCategory = item.category;
     this.editDescription = item.description;
     this.editDate = item.date.slice(0, 10);
@@ -376,7 +419,7 @@ export class Transacciones implements OnInit {
     if (!item) {
       return;
     }
-    const amount = Number(this.editAmount);
+    const amount = Math.round(Number(this.editAmount) * 100) / 100;
     if (!amount || amount <= 0) {
       this.toast.error("Ingrese un monto válido para la transacción.", "Monto inválido");
       return;
@@ -400,8 +443,13 @@ export class Transacciones implements OnInit {
           this.editing.set(null);
           this.load();
         },
-        error: () => {
-          this.toast.error("No se pudo actualizar la transacción. Intente de nuevo.", "Error al actualizar");
+        error: (err: HttpErrorResponse) => {
+          const message =
+            err.status === 0
+              ? "No se pudo conectar con el servidor. Intente de nuevo."
+              : (err.error?.error as string | undefined) ??
+                "No se pudo actualizar la transacción. Intente de nuevo.";
+          this.toast.error(message, "Error al actualizar");
           this.savingEdit = false;
         },
       });

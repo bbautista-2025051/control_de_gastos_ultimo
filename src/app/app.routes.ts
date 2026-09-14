@@ -22,5 +22,29 @@ export const routes: Routes = [
         (m) => m.Transacciones
       ),
   },
+  {
+    path: "categorias",
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import("./features/categorias/categorias").then(
+        (m) => m.Categorias
+      ),
+  },
+  {
+    path: "reportes",
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import("./features/reportes/reportes").then(
+        (m) => m.Reportes
+      ),
+  },
+  {
+    path: "ajustes",
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import("./features/ajustes/ajustes").then(
+        (m) => m.Ajustes
+      ),
+  },
   { path: "**", redirectTo: "dashboard" },
 ];

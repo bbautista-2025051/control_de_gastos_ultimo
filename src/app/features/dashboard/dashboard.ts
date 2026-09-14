@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { FormsModule } from "@angular/forms";
-import { RouterLink } from "@angular/router";
+import { RouterLink, RouterLinkActive, Router } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
 import { ToastService } from "../../core/toast.service";
 import {
@@ -9,12 +9,17 @@ import {
   type DashboardSummary,
   type MonthSum,
 } from "../../core/expenses.service";
-import { localDateToIso, todayLocalDate } from "../../core/date.utils";
+import {
+  localDateToIso,
+  todayLocalDate as getTodayLocalDate,
+} from "../../core/date.utils";
 
 const money = (value: number): string =>
   new Intl.NumberFormat("es-GT", {
     style: "currency",
     currency: "GTQ",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 
 const moneyNoDecimals = (value: number): string =>
@@ -72,7 +77,7 @@ interface CategoryView {
 
 @Component({
   selector: "app-dashboard",
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, RouterLinkActive],
   templateUrl: "./dashboard.html",
   styleUrl: "./dashboard.css",
 })
@@ -80,9 +85,11 @@ export class Dashboard implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly expenses = inject(ExpensesService);
+  private readonly router = inject(Router);
   readonly auth = inject(AuthService);
 
   readonly user = this.auth.user;
+  readonly avatarBroken = signal(false);
   readonly summary = signal<DashboardSummary | null>(null);
   loadError = false;
 
@@ -90,7 +97,7 @@ export class Dashboard implements OnInit {
   readonly menuOpen = signal(false);
   amount = "";
   category = "Alimentación";
-  date = todayLocalDate();
+  date = getTodayLocalDate();
   submitting = false;
 
   readonly expenseCategories = [
@@ -188,6 +195,10 @@ export class Dashboard implements OnInit {
 
   readonly alerts = computed(() => this.summary()?.alerts ?? []);
 
+  readonly exceedsIncome = computed(
+    () => this.summary()?.exceedsIncome ?? false
+  );
+
   readonly chart = computed<MonthSum[]>(() => this.summary()?.monthly ?? []);
 
   readonly chartMax = computed(() =>
@@ -217,6 +228,10 @@ export class Dashboard implements OnInit {
 
   money(value: number): string {
     return money(value);
+  }
+
+  todayLocalDate(): string {
+    return getTodayLocalDate();
   }
 
   barHeight(value: number): number {
@@ -255,9 +270,13 @@ export class Dashboard implements OnInit {
     this.menuOpen.update((open) => !open);
   }
 
+  onAvatarError(): void {
+    this.avatarBroken.set(true);
+  }
+
   settings(): void {
     this.menuOpen.set(false);
-    this.toast.info("Los ajustes de la cuenta estarán disponibles próximamente.", "Próximamente");
+    void this.router.navigate(["/ajustes"]);
   }
 
   setTipo(value: "INCOME" | "EXPENSE"): void {
@@ -265,7 +284,7 @@ export class Dashboard implements OnInit {
   }
 
   submit(): void {
-    const amount = Number(this.amount);
+    const amount = Math.round(Number(this.amount) * 100) / 100;
     if (!amount || amount <= 0) {
       this.toast.error("Ingrese un monto válido para la transacción.", "Monto inválido");
       return;
@@ -296,8 +315,16 @@ export class Dashboard implements OnInit {
               ?.scrollIntoView({ behavior: "smooth", block: "center" });
           }, 150);
         },
-        error: () => {
-          this.toast.error("No se pudo registrar la transacción. Intente de nuevo.", "Error al registrar");
+        error: (err: HttpErrorResponse) => {
+          const message =
+            err.status === 0
+              ? "No se pudo conectar con el servidor. Intente de nuevo."
+              : (err.error?.error as string | undefined) ??
+                "No se pudo registrar la transacción. Intente de nuevo.";
+          this.toast.error(
+            message,
+            "Error al registrar"
+          );
           this.submitting = false;
         },
       });
